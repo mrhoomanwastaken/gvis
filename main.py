@@ -150,16 +150,11 @@ class MyWindow(Gtk.Window):
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         self.drawing_area.connect("draw", self.on_draw)
-        GLib.timeout_add(16.6, self.refresh_drawing_area)
         # Connect to MPRIS service and update the album art
         self.source = self.get_mpris_service()
         if self.source:
             self.source.onPropertiesChanged = self.on_properties_changed
             self.update_info()
-    def refresh_drawing_area(self):
-        # Redraw the drawing area
-        self.drawing_area.queue_draw()
-        return True  # Keep the timeout active
 
     def on_pause_button_clicked(self, button):
         if self.source:
