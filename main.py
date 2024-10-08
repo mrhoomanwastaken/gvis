@@ -39,7 +39,7 @@ noise_reduction = 0.77
 low_cut_off = 50
 high_cut_off = 10000
 buffer_size = 2400
-input_id = "Firefox"
+input_source = "Auto"
 
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
 if plan == -1:
@@ -146,12 +146,12 @@ class MyWindow(Gtk.Window):
 
         self.overlay.add_overlay(self.song_box)
         
+        # Connect to MPRIS service and update the album art
+        self.source = self.get_mpris_service()
         # Start CAVA processing in a separate thread
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         self.drawing_area.connect("draw", self.on_draw)
-        # Connect to MPRIS service and update the album art
-        self.source = self.get_mpris_service()
         if self.source:
             self.source.onPropertiesChanged = self.on_properties_changed
             self.update_info()
@@ -261,10 +261,22 @@ class MyWindow(Gtk.Window):
             print("No album image available.")
     
     def run_cava(self):
+        global input_source
+        if input_source == "Auto":
+            print("input_source set to Auto. attempting to detect source.")
+            app = str(self.source.Identity)
+            print(f"detected app: {app}")
+            if app == "Mozilla firefox":
+                input_source = "Firefox"
+            else:
+                print(f"unsupported app {app} falling back to 'auto'")
+                input_source = "auto"
+            print(f"setting audio target to {input_source}")
+        
         process = subprocess.Popen(
-            ["pw-cat", "-r", "--target", str(input_id), "--format" , "f32" , "-"],
+            ["pw-cat", "-r", "--target", str(input_source), "--format" , "f32" , "-"],
             stdout=subprocess.PIPE,
-            bufsize=buffer_size * channels, 
+            bufsize=buffer_size * channels,
         )
 
         selector = selectors.DefaultSelector()
