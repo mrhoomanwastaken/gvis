@@ -8,24 +8,45 @@ from pydbus import SessionBus
 import urllib.request
 import cairo
 import time
+import selectors
+import ctypes
+import numpy as np
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
 
-BARS_NUMBER = 250
-OUTPUT_BIT_FORMAT = "16bit"
-RAW_TARGET = "/dev/stdout"
+#get cavacore ready
+cava_lib = ctypes.CDLL('/home/mrhooman/Downloads/cava-0.10.2/build/libcavacore.so')
 
-conpat = """
-[general]
-bars = %d
-[output]
-method = raw
-raw_target = %s
-bit_format = %s
-"""
+cava_lib.cava_init.argtypes = [
+    ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
+    ctypes.c_double, ctypes.c_int, ctypes.c_int
+]
+cava_lib.cava_init.restype = ctypes.POINTER(ctypes.c_void_p)
 
-config = conpat % (BARS_NUMBER, RAW_TARGET, OUTPUT_BIT_FORMAT)
-bytetype, bytesize, bytenorm = ("H", 2, 65535) if OUTPUT_BIT_FORMAT == "16bit" else ("B", 1, 255)
+cava_lib.cava_execute.argtypes = [
+    ctypes.POINTER(ctypes.c_double), ctypes.c_int, 
+    ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_void_p)
+]
+
+cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+
+#configure cavacore
+number_of_bars = 250
+rate = 48000
+channels = 2
+autosens = 1
+noise_reduction = 0.77
+low_cut_off = 50
+high_cut_off = 10000
+buffer_size = 2400
+input_id = "Firefox"
+
+plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
+if not plan:
+    print("Error initializing cava")
+    exit(1)
+
+
 
 class MyWindow(Gtk.Window):
     def __init__(self):
@@ -97,8 +118,15 @@ class MyWindow(Gtk.Window):
 
 
         # Add the album art holder to the box
-        self.album_art_holder = Gtk.Image()
+        self.album_art = Gtk.Image()
+        self.album_art_holder = Gtk.Overlay()
+        self.album_art_holder.add(self.album_art)
         self.info_box.pack_start(self.album_art_holder, True, True, 0)  # Add the image to the box
+
+        self.pause_buttion = Gtk.Button()
+        self.pause_buttion.get_style_context().add_class("transparent-button")
+        self.pause_buttion.set_relief(Gtk.ReliefStyle.NONE)
+        self.album_art_holder.add_overlay(self.pause_buttion)
 
         self.song_name = Gtk.Label()
         self.song_name.get_style_context().add_class("white-label")
@@ -114,6 +142,7 @@ class MyWindow(Gtk.Window):
 
         self.back_button.connect("clicked", self.on_back_button_clicked)
         self.skip_button.connect("clicked", self.on_skip_button_clicked)
+        self.pause_buttion.connect("clicked", self.on_pause_button_clicked)
 
         self.overlay.add_overlay(self.song_box)
         
@@ -121,7 +150,7 @@ class MyWindow(Gtk.Window):
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         self.drawing_area.connect("draw", self.on_draw)
-        GLib.timeout_add(100, self.refresh_drawing_area)
+        GLib.timeout_add(16.6, self.refresh_drawing_area)
         # Connect to MPRIS service and update the album art
         self.source = self.get_mpris_service()
         if self.source:
@@ -131,6 +160,10 @@ class MyWindow(Gtk.Window):
         # Redraw the drawing area
         self.drawing_area.queue_draw()
         return True  # Keep the timeout active
+
+    def on_pause_button_clicked(self, button):
+        if self.source:
+            self.source.PlayPause()
 
     def on_back_button_clicked(self, button):
         """Skip to the previous track."""
@@ -149,12 +182,14 @@ class MyWindow(Gtk.Window):
 
         # Draw the visualization
         if hasattr(self, 'sample'):
-            bar_width = widget.get_allocated_width() / BARS_NUMBER
+            bar_width = widget.get_allocated_width() / (number_of_bars * 2)
             for i, value in enumerate(self.sample):
+                if i < number_of_bars:
+                    i = ((number_of_bars) - i)
                 # Calculate height based on the sample value
                 height = value * widget.get_allocated_height()
                 # Set bar color (e.g., red)
-                cr.set_source_rgba(1, 0, 0, 1)  # Red color
+                cr.set_source_rgba(0, 1, 1, 1)  # Red color
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
     
@@ -223,7 +258,7 @@ class MyWindow(Gtk.Window):
                 scaled_pixbuf = pixbuf.scale_simple(300, 300, GdkPixbuf.InterpType.BILINEAR)  
 
                 # Set the Gtk.Image to display the downloaded album art
-                self.album_art_holder.set_from_pixbuf(scaled_pixbuf)
+                self.album_art.set_from_pixbuf(scaled_pixbuf)
 
             except Exception as e:
                 print(f"Failed to load album image: {e}")
@@ -231,22 +266,26 @@ class MyWindow(Gtk.Window):
             print("No album image available.")
     
     def run_cava(self):
-        with tempfile.NamedTemporaryFile() as config_file:
-            config_file.write(config.encode())
-            config_file.flush()
+        process = subprocess.Popen(
+            ["pw-cat", "-r", "--target", str(input_id), "--format" , "f32" , "-"],
+            stdout=subprocess.PIPE,
+            bufsize=buffer_size * channels, 
+        )
 
-            process = subprocess.Popen(["cava", "-p", config_file.name], stdout=subprocess.PIPE)
-            chunk = bytesize * BARS_NUMBER
-            fmt = bytetype * BARS_NUMBER
+        selector = selectors.DefaultSelector()
+        while True:
+            data = os.read(process.stdout.fileno(), buffer_size * channels)
+            if not data:
+                break
+            # Process audio data
+            samples = np.frombuffer(data, dtype=np.float32).astype(np.float64)
+            cava_output = np.zeros((number_of_bars * channels,), dtype=np.float64)
 
-            source = process.stdout
+            # Execute Cava visualization
+            cava_lib.cava_execute(samples.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), len(samples), cava_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), plan)
+            self.update_visualization(cava_output)
 
-            while True:
-                data = source.read(chunk)
-                if len(data) < chunk:
-                    break
-                sample = [i / bytenorm for i in struct.unpack(fmt, data)]
-                self.update_visualization(sample)
+
 
     def update_visualization(self, sample):
         # Update the visualization data and redraw
