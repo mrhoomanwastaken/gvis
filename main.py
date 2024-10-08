@@ -42,7 +42,7 @@ buffer_size = 2400
 input_id = "Firefox"
 
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
-if not plan:
+if plan == -1:
     print("Error initializing cava")
     exit(1)
 
