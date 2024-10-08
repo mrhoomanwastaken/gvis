@@ -269,7 +269,7 @@ class MyWindow(Gtk.Window):
 
         selector = selectors.DefaultSelector()
         while True:
-            data = os.read(process.stdout.fileno(), buffer_size * channels)
+            data = process.stdout.read(buffer_size * channels)
             if not data:
                 break
             # Process audio data
