@@ -39,7 +39,7 @@ except:
     print('cant find main config file. falling back to example config file')
     config.read('config_example.ini')
 
-debug = bool(str(config['General']['debug']) != 'False')
+debug = config['General'].getboolean('debug')
 if debug:
     print("debug mode")
 
@@ -53,6 +53,55 @@ low_cut_off = int(config['gvis']['low_cut_off'])
 high_cut_off = int(config['gvis']['high_cut_off'])
 buffer_size = int(config['gvis']['buffer_size'])
 input_source = str(config['gvis']['input_source'])
+
+gradient = bool(str(config['gvis']['gradient']) == 'True')
+
+if gradient:
+    colors = config['gvis']['color_gradent'].split(',')
+    colors = [float(i) for i in colors]
+    colors_list = []
+    if len(colors) % 4 == 0:
+        colors_amount = len(colors) // 4
+        for i in range(colors_amount):
+            color = tuple(colors[(i*4):((i+1)*4)])
+            colors_list.append(color)
+        
+        gradient_colors = []
+        for i in range(number_of_bars * channels):
+            t = i / ((number_of_bars * 2) - 1)
+            """Linearly interpolate between a list of colors (RGBA) based on t in [0, 1]."""
+            num_colors = len(colors_list)
+                        
+            # Find the interval in which t falls
+            if num_colors < 2:
+                raise ValueError("At least two colors are required for interpolation.")
+                        
+            # Calculate the index of the first color
+            index = min(int(t * (num_colors - 1)), num_colors - 2)
+            ratio = t * (num_colors - 1) - index  # Calculate the ratio between the two colors
+                            
+            # Interpolate between the two colors
+            gradient_colors.append (tuple(
+                colors_list[index][i] + ratio * (colors_list[index + 1][i] - colors_list[index][i])
+                for i in range(4)  # RGBA has 4 components
+                ))
+    
+    
+                
+else:
+    #turn color1 into a list
+    color1 = config['gvis']['color1'].split(',')
+    if len(color1) < 3:
+        print('color1 needs at least 3 vaules to work. setting color to default (cyan).')
+        color1 = ['0','1','1','1']
+    elif len(color1) > 4:
+        print('more than 4 values found. discarding extra values')
+        color1 = color1[:4]
+    color = []
+    #turn all of the items in color1 into floats and add them to color
+    color.extend(float(i) for i in color1)
+    color = tuple(color)
+    
 
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
 if plan == -1:
@@ -215,9 +264,13 @@ class MyWindow(Gtk.Window):
                     if i == 0 or i == (number_of_bars * 2) - 1:
                         cr.set_source_rgba(1,0,0,1)
                     else:
-                        cr.set_source_rgba(0,(1 - (i / (number_of_bars * 2))),(i / (number_of_bars * 2)),1)
+                        cr.set_source_rgba(0,(1 - (i / ((number_of_bars * 2) - 1))),(i / ((number_of_bars * 2) - 1)),1)
                 else:
-                    cr.set_source_rgba(0, 1, 1, 1)  # Red color
+                    if not gradient:
+                        cr.set_source_rgba(*color)
+                    else:
+                        cr.set_source_rgba(*gradient_colors[i])
+                    
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
     
