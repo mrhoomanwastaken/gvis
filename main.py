@@ -36,9 +36,12 @@ config = configparser.ConfigParser()
 try:
     config.read('config.ini')
 except:
+    print('cant find main config file. falling back to example config file')
     config.read('config_example.ini')
 
-debug = bool(config['General']['debug'])
+debug = bool(str(config['General']['debug']) != 'False')
+if debug:
+    print("debug mode")
 
 #configure cavacore
 number_of_bars = int(config['gvis']['bars'])
