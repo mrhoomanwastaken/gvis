@@ -31,7 +31,7 @@ cava_lib.cava_execute.argtypes = [
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
 #configure cavacore
-number_of_bars = 250
+number_of_bars = 10
 rate = 48000
 channels = 2
 autosens = 1
@@ -210,6 +210,12 @@ class MyWindow(Gtk.Window):
                 print(f"Connected to {mpris_services[1]}")
             else:
                 print("No MPRIS service found.")
+        
+        if source == None:
+            global input_source
+            if input_source == "Auto":
+                print("cannot detect audio source without MPRIS.")
+                input_source = "auto"
 
         return source
 
@@ -269,10 +275,12 @@ class MyWindow(Gtk.Window):
             if app == "Mozilla firefox":
                 input_source = "Firefox"
             else:
-                print(f"unsupported app {app} falling back to 'auto'")
+                print(f"unsupported app {app} falling back to pipewire's default source")
                 input_source = "auto"
             print(f"setting audio target to {input_source}")
-        
+        if input_source == "auto":
+            print ("using pipewire's default source")
+
         process = subprocess.Popen(
             ["pw-cat", "-r", "--target", str(input_source), "--format" , "f32" , "-"],
             stdout=subprocess.PIPE,
