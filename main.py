@@ -202,7 +202,7 @@ class MyWindow(Gtk.Window):
         if hasattr(self, 'sample'):
             bar_width = widget.get_allocated_width() / (number_of_bars * 2)
             for i, value in enumerate(self.sample):
-                if i < number_of_bars:
+                if i < number_of_bars + 1:
                     i = ((number_of_bars) - i)
                 # Calculate height based on the sample value
                 height = value * widget.get_allocated_height()
