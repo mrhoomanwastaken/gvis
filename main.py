@@ -183,6 +183,10 @@ class MyWindow(Gtk.Window):
         self.album_art_holder.add(self.album_art)
         self.info_box.pack_start(self.album_art_holder, True, True, 0)  # Add the image to the box
 
+        self.progress_bar = Gtk.ProgressBar()
+        self.progress_bar.set_fraction(1)
+        self.album_art_holder.add_overlay(self.progress_bar)
+
         self.pause_buttion = Gtk.Button()
         self.pause_buttion.get_style_context().add_class("transparent-button")
         self.pause_buttion.set_relief(Gtk.ReliefStyle.NONE)
@@ -215,6 +219,7 @@ class MyWindow(Gtk.Window):
         if self.source:
             self.source.onPropertiesChanged = self.on_properties_changed
             self.update_info()
+            GLib.timeout_add(100, self.update_progress)
     
     def get_screen_size(self , display):
         #from user3840170 on stackoverflow
@@ -312,8 +317,17 @@ class MyWindow(Gtk.Window):
 
         metadata = self.source.Metadata
 
+
         song_name = metadata.get('xesam:title')
         self.song_name.set_label(song_name)
+
+        try:
+            if self.old_song != song_name:
+                new_song = True
+                self.old_song = song_name
+        except:
+            self.old_song = song_name
+            new_song = True
 
         album_name = metadata.get('xesam:album')
         self.album_name.set_label(album_name)
@@ -321,6 +335,22 @@ class MyWindow(Gtk.Window):
         artist_name = metadata.get('xesam:artist')
         self.artist_name.set_label(artist_name[0])
 
+
+        self.just_updated = True
+        try:
+            if self.source.Position / self.source.Metadata.get('mpris:length') > 1:
+                self.progress_bar.set_fraction(self.source.Position / self.source.Metadata.get('mpris:length'))
+            elif new_song:
+                print('cant find accurate position in song assuming song just started')
+                self.progress_bar.set_fraction(0)
+        except UnboundLocalError:
+            pass
+
+        try:
+            Rate = self.source.Rate
+        except:
+            Rate = 1.0
+        self.progress_rate = ((100000 / self.source.Metadata.get('mpris:length')) * Rate)
 
         album_image_url = metadata.get("mpris:artUrl")
 
@@ -345,6 +375,13 @@ class MyWindow(Gtk.Window):
                 print(f"Failed to load album image: {e}")
         else:
             print("No album image available.")
+    def update_progress(self):
+        if self.just_updated:
+            self.just_updated = False
+        elif self.source.PlaybackStatus == 'Playing':
+            self.progress_bar.set_fraction(self.progress_bar.get_fraction() + self.progress_rate)
+        return True
+
     
     def run_cava(self):
         global input_source
