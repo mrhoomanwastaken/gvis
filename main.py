@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import threading
 import gi
+import configparser
 from pydbus import SessionBus
 import urllib.request
 import cairo
@@ -30,16 +31,24 @@ cava_lib.cava_execute.argtypes = [
 
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
+config = configparser.ConfigParser()
+
+try:
+    config.read('config.ini')
+except:
+    config.read('config_example.ini')
+
+
 #configure cavacore
-number_of_bars = 250
-rate = 48000
-channels = 2
-autosens = 1
-noise_reduction = 0.77
-low_cut_off = 50
-high_cut_off = 10000
-buffer_size = 2400
-input_source = "Auto"
+number_of_bars = int(config['gvis']['bars'])
+rate = int(config['gvis']['rate'])
+channels = int(config['gvis']['channels'])
+autosens = int(config['gvis']['autosens'])
+noise_reduction = float(config['gvis']['noise_reduction'])
+low_cut_off = int(config['gvis']['low_cut_off'])
+high_cut_off = int(config['gvis']['high_cut_off'])
+buffer_size = int(config['gvis']['buffer_size'])
+input_source = str(config['gvis']['input_source'])
 
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
 if plan == -1:
