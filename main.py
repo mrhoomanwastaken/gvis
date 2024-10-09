@@ -39,7 +39,7 @@ except:
     print('cant find main config file. falling back to example config file')
     config.read('config_example.ini')
 
-debug = bool(str(config['General']['debug']) != 'False')
+debug = config['General'].getboolean('debug')
 if debug:
     print("debug mode")
 
@@ -57,9 +57,23 @@ input_source = str(config['gvis']['input_source'])
 gradient = bool(str(config['gvis']['gradient']) == 'True')
 
 if gradient:
-    colors = list(config['gvis']['color_gradent'])
+    colors = config['gvis']['color_gradent'].split(',')
+    if colors % 4 == 0:
+        pass
 else:
-    color = tuple(config['gvis']['color1'])
+    #turn color1 into a list
+    color1 = config['gvis']['color1'].split(',')
+    if len(color1) < 3:
+        print('color1 needs at least 3 vaules to work. setting color to default (cyan).')
+        color1 = ['0','1','1','1']
+    elif len(color1) > 4:
+        print('more than 4 values found. discarding extra values')
+        color1 = color1[:4]
+    color = []
+    #turn all of the items in color1 into floats and add them to color
+    color.extend(float(i) for i in color1)
+    color = tuple(color)
+    
 
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
 if plan == -1:
@@ -224,7 +238,9 @@ class MyWindow(Gtk.Window):
                     else:
                         cr.set_source_rgba(0,(1 - (i / (number_of_bars * 2))),(i / (number_of_bars * 2)),1)
                 else:
-                    cr.set_source_rgba(0, 1, 1, 1)  # Red color
+                    if not gradient:
+                        cr.set_source_rgba(*color)
+                    
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
     
