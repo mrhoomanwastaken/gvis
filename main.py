@@ -58,8 +58,36 @@ gradient = bool(str(config['gvis']['gradient']) == 'True')
 
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
-    if colors % 4 == 0:
-        pass
+    colors = [float(i) for i in colors]
+    colors_list = []
+    if len(colors) % 4 == 0:
+        colors_amount = len(colors) // 4
+        for i in range(colors_amount):
+            color = tuple(colors[(i*4):((i+1)*4)])
+            colors_list.append(color)
+        
+        gradient_colors = []
+        for i in range(number_of_bars * channels):
+            t = i / ((number_of_bars * 2) - 1)
+            """Linearly interpolate between a list of colors (RGBA) based on t in [0, 1]."""
+            num_colors = len(colors_list)
+                        
+            # Find the interval in which t falls
+            if num_colors < 2:
+                raise ValueError("At least two colors are required for interpolation.")
+                        
+            # Calculate the index of the first color
+            index = min(int(t * (num_colors - 1)), num_colors - 2)
+            ratio = t * (num_colors - 1) - index  # Calculate the ratio between the two colors
+                            
+            # Interpolate between the two colors
+            gradient_colors.append (tuple(
+                colors_list[index][i] + ratio * (colors_list[index + 1][i] - colors_list[index][i])
+                for i in range(4)  # RGBA has 4 components
+                ))
+    
+    
+                
 else:
     #turn color1 into a list
     color1 = config['gvis']['color1'].split(',')
@@ -236,10 +264,12 @@ class MyWindow(Gtk.Window):
                     if i == 0 or i == (number_of_bars * 2) - 1:
                         cr.set_source_rgba(1,0,0,1)
                     else:
-                        cr.set_source_rgba(0,(1 - (i / (number_of_bars * 2))),(i / (number_of_bars * 2)),1)
+                        cr.set_source_rgba(0,(1 - (i / ((number_of_bars * 2) - 1))),(i / ((number_of_bars * 2) - 1)),1)
                 else:
                     if not gradient:
                         cr.set_source_rgba(*color)
+                    else:
+                        cr.set_source_rgba(*gradient_colors[i])
                     
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
