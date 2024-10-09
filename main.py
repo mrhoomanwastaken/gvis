@@ -31,7 +31,7 @@ cava_lib.cava_execute.argtypes = [
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
 #configure cavacore
-number_of_bars = 10
+number_of_bars = 250
 rate = 48000
 channels = 2
 autosens = 1
@@ -51,10 +51,8 @@ if plan == -1:
 class MyWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="gvis")
-        screen = self.get_screen()
-        width = screen.get_width()
-        height = screen.get_height()
-        self.set_default_size(width // 2, height // 2)
+        self.get_screen_size(self.get_display())
+        self.set_default_size(self.width, self.height // 2)
 
         # Enable support for transparency
         self.set_visual(self.get_screen().get_rgba_visual())
@@ -155,6 +153,21 @@ class MyWindow(Gtk.Window):
         if self.source:
             self.source.onPropertiesChanged = self.on_properties_changed
             self.update_info()
+    
+    def get_screen_size(self , display):
+        #from user3840170 on stackoverflow
+        mon_geoms = [
+            display.get_monitor(i).get_geometry()
+            for i in range(display.get_n_monitors())
+        ]
+
+        x0 = min(r.x            for r in mon_geoms)
+        y0 = min(r.y            for r in mon_geoms)
+        x1 = max(r.x + r.width  for r in mon_geoms)
+        y1 = max(r.y + r.height for r in mon_geoms)
+
+        self.height = y1 - y0
+        self.width = x1 - x0
 
     def on_pause_button_clicked(self, button):
         if self.source:
@@ -210,12 +223,6 @@ class MyWindow(Gtk.Window):
                 print(f"Connected to {mpris_services[1]}")
             else:
                 print("No MPRIS service found.")
-        
-        if source == None:
-            global input_source
-            if input_source == "Auto":
-                print("cannot detect audio source without MPRIS.")
-                input_source = "auto"
 
         return source
 
@@ -275,12 +282,10 @@ class MyWindow(Gtk.Window):
             if app == "Mozilla firefox":
                 input_source = "Firefox"
             else:
-                print(f"unsupported app {app} falling back to pipewire's default source")
+                print(f"unsupported app {app} falling back to 'auto'")
                 input_source = "auto"
             print(f"setting audio target to {input_source}")
-        if input_source == "auto":
-            print ("using pipewire's default source")
-
+        
         process = subprocess.Popen(
             ["pw-cat", "-r", "--target", str(input_source), "--format" , "f32" , "-"],
             stdout=subprocess.PIPE,
