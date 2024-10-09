@@ -54,6 +54,13 @@ high_cut_off = int(config['gvis']['high_cut_off'])
 buffer_size = int(config['gvis']['buffer_size'])
 input_source = str(config['gvis']['input_source'])
 
+gradient = bool(str(config['gvis']['gradient']) == 'True')
+
+if gradient:
+    colors = list(config['gvis']['color_gradent'])
+else:
+    color = tuple(config['gvis']['color1'])
+
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
 if plan == -1:
     print("Error initializing cava")
