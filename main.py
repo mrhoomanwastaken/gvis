@@ -38,6 +38,7 @@ try:
 except:
     config.read('config_example.ini')
 
+debug = bool(config['General']['debug'])
 
 #configure cavacore
 number_of_bars = int(config['gvis']['bars'])
@@ -201,12 +202,20 @@ class MyWindow(Gtk.Window):
         if hasattr(self, 'sample'):
             bar_width = widget.get_allocated_width() / (number_of_bars * 2)
             for i, value in enumerate(self.sample):
+                print(i)
                 if i < number_of_bars:
                     i = ((number_of_bars) - i)
                 # Calculate height based on the sample value
                 height = value * widget.get_allocated_height()
                 # Set bar color (e.g., red)
-                cr.set_source_rgba(0, 1, 1, 1)  # Red color
+                if debug:
+                    #color the start and end bars red
+                    if i == 0 or i == (number_of_bars * 2) - 1:
+                        cr.set_source_rgba(1,0,0,1)
+                    else:
+                        cr.set_source_rgba(0,(1 - (i / (number_of_bars * 2))),(i / (number_of_bars * 2)),1)
+                else:
+                    cr.set_source_rgba(0, 1, 1, 1)  # Red color
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
     
