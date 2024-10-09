@@ -203,23 +203,41 @@ class MyWindow(Gtk.Window):
 
         # Draw the visualization
         if hasattr(self, 'sample'):
-            bar_width = widget.get_allocated_width() / (number_of_bars * 2)
-            for i, value in enumerate(self.sample):
-                if i < number_of_bars:
-                    i = ((number_of_bars - 1) - i)
-                # Calculate height based on the sample value
-                height = value * widget.get_allocated_height()
-                # Set bar color (e.g., red)
-                if debug:
-                    #color the start and end bars red
-                    if i == 0 or i == (number_of_bars * 2) - 1:
-                        cr.set_source_rgba(1,0,0,1)
+            place_holder = 2
+            if place_holder == 1:
+                bar_width = widget.get_allocated_width() / (number_of_bars * 2)
+                for i, value in enumerate(self.sample):
+                    if i < number_of_bars:
+                        i = ((number_of_bars - 1) - i)
+                    # Calculate height based on the sample value
+                    height = value * widget.get_allocated_height()
+                    # Set bar color (e.g., red)
+                    if debug:
+                        #color the start and end bars red
+                        if i == 0 or i == (number_of_bars * 2) - 1:
+                            cr.set_source_rgba(1,0,0,1)
+                        else:
+                            cr.set_source_rgba(0,(1 - (i / (number_of_bars * 2))),(i / (number_of_bars * 2)),1)
                     else:
-                        cr.set_source_rgba(0,(1 - (i / (number_of_bars * 2))),(i / (number_of_bars * 2)),1)
-                else:
-                    cr.set_source_rgba(0, 1, 1, 1)  # Red color
-                cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
-                cr.fill()
+                        cr.set_source_rgba(0, 1, 1, 1)  # Red color
+                    cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
+                    cr.fill()
+            elif place_holder == 2:
+                bar_width = widget.get_allocated_width() / (number_of_bars * 2)
+                points = []
+                height_old = 0
+                for i, value in enumerate(self.sample):
+                    #if i < number_of_bars:
+                    #    i = ((number_of_bars - 1) - i)
+                    # Calculate height based on the sample value
+                    height = value * widget.get_allocated_height()
+                    # Set bar color (e.g., red)
+                    cr.curve_to(((i-0.5)*bar_width),(height+height_old)/2,((i-0.5)*bar_width),height/2,((i+0.5)*bar_width),height/2)
+                    height_old = height
+                
+                cr.set_source_rgba(0, 1, 1,1)
+                cr.set_line_width(2)
+                cr.stroke()
     
     def get_mpris_service(self):
         bus = SessionBus()
