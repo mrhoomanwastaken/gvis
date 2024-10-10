@@ -221,6 +221,7 @@ class MyWindow(Gtk.Window):
         self.drawing_area.connect("draw", self.on_draw)
         if self.source:
             self.source.onPropertiesChanged = self.on_properties_changed
+            self.new_song = True
             self.update_info()
             GLib.timeout_add(100, self.update_progress)
     
@@ -343,11 +344,11 @@ class MyWindow(Gtk.Window):
 
         try:
             if self.old_song != song_name:
-                new_song = True
+                self.new_song = True
                 self.old_song = song_name
         except:
             self.old_song = song_name
-            new_song = True
+            self.new_song = True
 
         try:
             album_name = metadata.get('xesam:album')
@@ -364,16 +365,16 @@ class MyWindow(Gtk.Window):
         try:
             if self.source.Position / self.source.Metadata.get('mpris:length') > 1:
                 self.progress_bar.set_fraction(self.source.Position / self.source.Metadata.get('mpris:length'))
-            elif new_song:
+            elif self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except UnboundLocalError:
-            if not new_song:
+            if not self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except gi.repository.GLib.GError as e:
             print(e)
-            if not new_song:
+            if not self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
 
