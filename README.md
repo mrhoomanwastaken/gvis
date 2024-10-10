@@ -62,4 +62,4 @@ it should work out of the box as long as you are using pipewire.
 # how to run
 the first time you run it make sure to run it in a termnal that you can input stuff into.
 if it works without any error you can run it using this command
-nohup python ./main.py & disown && exit
+`nohup python ./main.py & disown && exit`
