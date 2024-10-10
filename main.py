@@ -345,8 +345,6 @@ class MyWindow(Gtk.Window):
             if self.old_song != song_name:
                 new_song = True
                 self.old_song = song_name
-            else:
-                return True
         except:
             self.old_song = song_name
             new_song = True
