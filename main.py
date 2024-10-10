@@ -1,5 +1,4 @@
 import os
-import select
 import struct
 import subprocess
 import tempfile
@@ -12,7 +11,6 @@ import cairo
 import time
 import selectors
 import ctypes
-import sys
 import numpy as np
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
@@ -291,30 +289,18 @@ class MyWindow(Gtk.Window):
 
         source = None
 
-        Failed_sources = []
-        working_sources = []
-        for i in mpris_services:
-            try:     
-                working_sources.append(bus.get(i, "/org/mpris/MediaPlayer2"))
-            except:
-                Failed_sources.append(i)
-        
-        
-        if len(working_sources) == 1:
-            source = working_sources[0]
-        elif len(working_sources) > 1:
-            if sys.stdin.isatty():
-                print("please choose a mpris service 0 is the first option and 1 is the second and so on")
-                print([s.Identity for s in working_sources])
-
-                i, o, e = select.select( [sys.stdin], [], [], 5 )
-
-                if (i):
-                    source = working_sources[int(sys.stdin.readline().strip())]
-                else:
-                    print('input timed out chooseing first option')
-                    source = working_sources[0]
-
+        try:
+            if mpris_services:
+                source = bus.get(mpris_services[0], "/org/mpris/MediaPlayer2")
+                print(f"Connected to {mpris_services[0]}")
+            else:
+                print("No MPRIS service found.")
+        except:
+            if len(mpris_services) > 1:
+                source = bus.get(mpris_services[1], "/org/mpris/MediaPlayer2")
+                print(f"Connected to {mpris_services[1]}")
+            else:
+                print("No MPRIS service found.")
 
         return source
 
@@ -339,22 +325,16 @@ class MyWindow(Gtk.Window):
             if self.old_song != song_name:
                 new_song = True
                 self.old_song = song_name
-            else:
-                return True
         except:
             self.old_song = song_name
             new_song = True
 
-        try:
-            album_name = metadata.get('xesam:album')
-            self.album_name.set_label(album_name)
-        except TypeError:
-            pass
-        try:
-            artist_name = metadata.get('xesam:artist')
-            self.artist_name.set_label(artist_name[0])
-        except TypeError:
-            pass
+        album_name = metadata.get('xesam:album')
+        self.album_name.set_label(album_name)
+
+        artist_name = metadata.get('xesam:artist')
+        self.artist_name.set_label(artist_name[0])
+
 
         self.just_updated = True
         try:
@@ -411,8 +391,6 @@ class MyWindow(Gtk.Window):
             print(f"detected app: {app}")
             if app == "Mozilla firefox":
                 input_source = "Firefox"
-            if app == "VLC media player":
-                input_source = 'VLC media player (LibVLC 3.0.21)'
             else:
                 print(f"unsupported app {app} falling back to 'auto'")
                 input_source = "auto"
