@@ -1,3 +1,8 @@
 nohup.out
 cavacore/
 config.ini
+venv/
+nudist/
+dist/
+cavacore/
+build/
