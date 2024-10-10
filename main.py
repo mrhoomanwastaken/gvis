@@ -56,7 +56,8 @@ high_cut_off = int(config['gvis']['high_cut_off'])
 buffer_size = int(config['gvis']['buffer_size'])
 input_source = str(config['gvis']['input_source'])
 
-gradient = bool(str(config['gvis']['gradient']) == 'True')
+gradient = config.getboolean('gvis' ,'gradient')
+draw_pending_check = config.getboolean('gvis' , 'draw_pending_check')
 
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
@@ -439,8 +440,6 @@ class MyWindow(Gtk.Window):
         selector = selectors.DefaultSelector()
         global draw_pending
         while True:
-            if draw_pending:
-                time.sleep(0.015)
             data = process.stdout.read(buffer_size * channels)
             if not data:
                 break
@@ -457,8 +456,8 @@ class MyWindow(Gtk.Window):
     def update_visualization(self, sample):
         # Update the visualization data and redraw
         self.sample = sample
-        global draw_pending
-        if not draw_pending:
+        global draw_pending , draw_pending_check
+        if not draw_pending or not draw_pending_check:
             draw_pending = True
             self.drawing_area.queue_draw()  # Request to redraw the area
 
