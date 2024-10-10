@@ -368,12 +368,14 @@ class MyWindow(Gtk.Window):
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except UnboundLocalError:
-            print('cant find accurate position in song assuming song just started')
-            self.progress_bar.set_fraction(0)
+            if not new_song:
+                print('cant find accurate position in song assuming song just started')
+                self.progress_bar.set_fraction(0)
         except gi.repository.GLib.GError as e:
             print(e)
-            print('cant find accurate position in song assuming song just started')
-            self.progress_bar.set_fraction(0)
+            if not new_song:
+                print('cant find accurate position in song assuming song just started')
+                self.progress_bar.set_fraction(0)
 
         try:
             Rate = self.source.Rate
