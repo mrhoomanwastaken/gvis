@@ -37,8 +37,8 @@ things like discord pings wont show up on the visulisation.
 any app the supports mpris MediaPlayer2 (aka any app that you can pause without going to the app) can be controlled via gvis.
 even some cli music players (might) work.
 
-## song progress bar (extra scuffed)!
-there is a progress bar that shows your spot in the song and the best part is it does not work.
+## song progress bar (less scuffed)!
+there is a progress bar that shows your spot in the song and the best part is it does not work (now fixed).
 well it might work better if the app supports getting the position but I have not found any.
 
 
