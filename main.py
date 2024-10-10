@@ -348,8 +348,9 @@ class MyWindow(Gtk.Window):
                 self.old_song = song_name
             else:
                 self.old_song = song_name
-                self.new_song = True
-        except:
+                self.new_song = False
+        except Exception as e:
+            print(e)
             self.old_song = song_name
             self.new_song = True
 
