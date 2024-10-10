@@ -110,7 +110,7 @@ if plan == -1:
     print("Error initializing cava")
     exit(1)
 
-
+draw_pending = False
 
 class MyWindow(Gtk.Window):
     def __init__(self):
@@ -253,6 +253,7 @@ class MyWindow(Gtk.Window):
             self.source.Next()  # Call the Next method from the MPRIS interface
 
     def on_draw(self, widget, cr):
+        global draw_pending
         # Set the transparent background
         cr.set_source_rgba(0.0, 0.0, 0.0, 0.5) 
         cr.paint()
@@ -280,6 +281,7 @@ class MyWindow(Gtk.Window):
                     
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
+            draw_pending = False
     
     def get_mpris_service(self):
         bus = SessionBus()
@@ -299,6 +301,8 @@ class MyWindow(Gtk.Window):
             except:
                 Failed_sources.append(i)
         
+        print(len(mpris_services))
+        print(len(working_sources))
         
         if len(working_sources) == 1:
             source = working_sources[0]
@@ -314,7 +318,8 @@ class MyWindow(Gtk.Window):
                 else:
                     print('input timed out chooseing first option')
                     source = working_sources[0]
-
+        elif len(working_sources) == 0:
+            raise ValueError("there needs to be at least one working mpris source")
 
         return source
 
@@ -364,16 +369,23 @@ class MyWindow(Gtk.Window):
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except UnboundLocalError:
-            pass
+            print('cant find accurate position in song assuming song just started')
+            self.progress_bar.set_fraction(0)
+        except gi.repository.GLib.GError as e:
+            print(e)
+            print('cant find accurate position in song assuming song just started')
+            self.progress_bar.set_fraction(0)
 
         try:
             Rate = self.source.Rate
         except:
             Rate = 1.0
-        self.progress_rate = ((100000 / self.source.Metadata.get('mpris:length')) * Rate)
-
+        try:
+            self.progress_rate = ((100000 / self.source.Metadata.get('mpris:length')) * Rate)
+        except TypeError:
+            print('cant find song length. progress bar will not work')
+            self.progress_rate = 0
         album_image_url = metadata.get("mpris:artUrl")
-
         if album_image_url:
             # Download the image
             try:
@@ -411,7 +423,7 @@ class MyWindow(Gtk.Window):
             print(f"detected app: {app}")
             if app == "Mozilla firefox":
                 input_source = "Firefox"
-            if app == "VLC media player":
+            elif app == "VLC media player":
                 input_source = 'VLC media player (LibVLC 3.0.21)'
             else:
                 print(f"unsupported app {app} falling back to 'auto'")
@@ -425,7 +437,10 @@ class MyWindow(Gtk.Window):
         )
 
         selector = selectors.DefaultSelector()
+        global draw_pending
         while True:
+            if draw_pending:
+                time.sleep(0.015)
             data = process.stdout.read(buffer_size * channels)
             if not data:
                 break
@@ -442,7 +457,10 @@ class MyWindow(Gtk.Window):
     def update_visualization(self, sample):
         # Update the visualization data and redraw
         self.sample = sample
-        self.drawing_area.queue_draw()  # Request to redraw the area
+        global draw_pending
+        if not draw_pending:
+            draw_pending = True
+            self.drawing_area.queue_draw()  # Request to redraw the area
 
 
 
