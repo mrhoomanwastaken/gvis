@@ -346,6 +346,9 @@ class MyWindow(Gtk.Window):
             if self.old_song != song_name:
                 self.new_song = True
                 self.old_song = song_name
+            else:
+                self.old_song = song_name
+                self.new_song = True
         except:
             self.old_song = song_name
             self.new_song = True
@@ -360,8 +363,7 @@ class MyWindow(Gtk.Window):
             self.artist_name.set_label(artist_name[0])
         except TypeError:
             pass
-
-        self.just_updated = True
+        
         try:
             if self.source.Position / self.source.Metadata.get('mpris:length') > 1:
                 self.progress_bar.set_fraction(self.source.Position / self.source.Metadata.get('mpris:length'))
@@ -377,6 +379,7 @@ class MyWindow(Gtk.Window):
             if self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
+        self.just_updated = False
 
         try:
             Rate = self.source.Rate
@@ -409,6 +412,8 @@ class MyWindow(Gtk.Window):
                 print(f"Failed to load album image: {e}")
         else:
             print("No album image available.")
+        
+        self.new_song = False
     def update_progress(self):
         if self.just_updated:
             self.just_updated = False
