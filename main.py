@@ -369,12 +369,12 @@ class MyWindow(Gtk.Window):
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except UnboundLocalError:
-            if not self.new_song:
+            if self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except gi.repository.GLib.GError as e:
             print(e)
-            if not self.new_song:
+            if self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
 
