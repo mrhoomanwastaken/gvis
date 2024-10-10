@@ -379,7 +379,7 @@ class MyWindow(Gtk.Window):
             if self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
-        self.just_updated = False
+        self.just_updated = True
 
         try:
             Rate = self.source.Rate
