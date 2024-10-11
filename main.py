@@ -16,6 +16,7 @@ import sys
 import numpy as np
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
+from configmaker import create_config
 
 
 if getattr(sys, 'frozen', False):
@@ -23,17 +24,6 @@ if getattr(sys, 'frozen', False):
 else:
     base_path = os.path.dirname(os.path.abspath(__file__))
 
-def create_config():
-    config = configparser.ConfigParser()
-
-    # Add sections and key-value pairs
-    config['General'] = {'debug': True, 'log_level': 'info'}
-    config['gvis'] = {'rate': 41000,
-                          'channels': 2, 'autosens': 1, 'noise_reduction' : 0.77 , 'low_cut_off' : 50 , 'high_cut_off' : 10000 , 'buffer_size' : 1200 , 'input_source' : 'Auto' , 'bars' : 50 , 'color1' : '0,1,1,1' , 'gradient' : True , 'color_gradent' : '1,0,0,1,0,1,0,1,0,0,1,1' , 'draw_pending_check' : False}
-
-    # Write the configuration to a file
-    with open(os.path.join(base_path , 'config_example.ini'), 'w') as configfile:
-        config.write(configfile)
 
 #get cavacore ready
 cava_lib = ctypes.CDLL('./libcavacore.so')
@@ -53,19 +43,14 @@ cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
 
 config = configparser.ConfigParser()
-if not os.path.exists(os.path.join(base_path , 'config_example.ini')):
-    create_config()
 
-try:
-    if os.os.path.exists(os.path.join(base_path , 'config.ini')):
-        config.read(os.path.join(base_path, 'config.ini'))
+if os.path.exists(os.path.join(base_path , 'config.ini')):
+    config.read(os.path.join(base_path, 'config.ini'))
+else:
+    print('cant find main config file. falling back to example config file')
+    if os.path.exists(os.path.join(base_path , 'config_example.ini')):
+        config.read(os.path.join(base_path , 'config_example.ini'))
     else:
-        config.read(os.path.join(base_path , 'config_example.ini'))
-except:
-    try:
-        print('cant find main config file. falling back to example config file')
-        config.read(os.path.join(base_path , 'config_example.ini'))
-    except:
         print("could not find the config example file. makeing one now.")
         create_config()
         config.read(os.path.join(base_path , 'config_example.ini'))
