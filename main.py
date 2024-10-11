@@ -48,7 +48,7 @@ if os.path.exists(os.path.join(base_path , 'config.ini')):
     config.read(os.path.join(base_path, 'config.ini'))
 else:
     print('cant find main config file. falling back to example config file')
-    if not os.path.exists(os.path.join(base_path , 'config_example.ini')):
+    if os.path.exists(os.path.join(base_path , 'config_example.ini')):
         config.read(os.path.join(base_path , 'config_example.ini'))
     else:
         print("could not find the config example file. makeing one now.")
