@@ -34,7 +34,10 @@ cava_lib.cava_execute.argtypes = [
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
 
-base_path = os.path.dirname(sys.executable)
+if getattr(sys, 'frozen', False):
+    base_path = os.path.dirname(sys.executable)
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
 
 def create_config():
     config = configparser.ConfigParser()
