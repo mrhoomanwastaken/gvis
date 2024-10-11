@@ -17,22 +17,6 @@ import numpy as np
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
 
-#get cavacore ready
-cava_lib = ctypes.CDLL('./libcavacore.so')
-
-cava_lib.cava_init.argtypes = [
-    ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
-    ctypes.c_double, ctypes.c_int, ctypes.c_int
-]
-cava_lib.cava_init.restype = ctypes.POINTER(ctypes.c_void_p)
-
-cava_lib.cava_execute.argtypes = [
-    ctypes.POINTER(ctypes.c_double), ctypes.c_int, 
-    ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_void_p)
-]
-
-cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
-
 
 if getattr(sys, 'frozen', False):
     base_path = os.path.dirname(sys.executable)
@@ -51,10 +35,32 @@ def create_config():
     with open(os.path.join(base_path , 'config_example.ini'), 'w') as configfile:
         config.write(configfile)
 
+#get cavacore ready
+cava_lib = ctypes.CDLL('./libcavacore.so')
+
+cava_lib.cava_init.argtypes = [
+    ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
+    ctypes.c_double, ctypes.c_int, ctypes.c_int
+]
+cava_lib.cava_init.restype = ctypes.POINTER(ctypes.c_void_p)
+
+cava_lib.cava_execute.argtypes = [
+    ctypes.POINTER(ctypes.c_double), ctypes.c_int, 
+    ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_void_p)
+]
+
+cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+
+
 config = configparser.ConfigParser()
+if not os.path.exists(os.path.join(base_path , 'config_example.ini')):
+    create_config()
 
 try:
-    config.read(os.path.join(base_path, 'config.ini'))
+    if os.os.path.exists(os.path.join(base_path , 'config.ini')):
+        config.read(os.path.join(base_path, 'config.ini'))
+    else:
+        config.read(os.path.join(base_path , 'config_example.ini'))
 except:
     try:
         print('cant find main config file. falling back to example config file')
