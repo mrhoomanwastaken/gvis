@@ -18,7 +18,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
 
 #get cavacore ready
-cava_lib = ctypes.CDLL('./cavacore/build/libcavacore.so')
+cava_lib = ctypes.CDLL('./libcavacore.so')
 
 cava_lib.cava_init.argtypes = [
     ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
