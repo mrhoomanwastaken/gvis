@@ -57,6 +57,7 @@ except:
     except:
         print("could not find the config example file. makeing one now.")
         create_config()
+        config.read('config_example.ini')
 
 debug = config['General'].getboolean('debug')
 if debug:
