@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[('libcavacore.so', '.')],
-    datas=[],
+    datas=[('./back.png', '.'), ('./skip.png', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
