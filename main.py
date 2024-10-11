@@ -33,13 +33,30 @@ cava_lib.cava_execute.argtypes = [
 
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
+
+def create_config():
+    config = configparser.ConfigParser()
+
+    # Add sections and key-value pairs
+    config['General'] = {'debug': True, 'log_level': 'info'}
+    config['gvis'] = {'rate': 41000,
+                          'channels': 2, 'autosens': 1, 'noise_reduction' : 0.77 , 'low_cut_off' : 50 , 'high_cut_off' : 10000 , 'buffer_size' : 1200 , 'input_source' : 'Auto' , 'bars' : 50 , 'color1' : '0,1,1,1' , 'gradient' : True , 'color_gradent' : '1,0,0,1,0,1,0,1,0,0,1,1' , 'draw_pending_check' : False}
+
+    # Write the configuration to a file
+    with open('config_example.ini', 'w') as configfile:
+        config.write(configfile)
+
 config = configparser.ConfigParser()
 
 try:
     config.read('config.ini')
 except:
-    print('cant find main config file. falling back to example config file')
-    config.read('config_example.ini')
+    try:
+        print('cant find main config file. falling back to example config file')
+        config.read('config_example.ini')
+    except:
+        print("could not find the config example file. makeing one now.")
+        create_config()
 
 debug = config['General'].getboolean('debug')
 if debug:
