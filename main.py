@@ -16,6 +16,14 @@ import sys
 import numpy as np
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
+from configmaker import create_config
+
+
+if getattr(sys, 'frozen', False):
+    base_path = os.path.dirname(sys.executable)
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
 
 #get cavacore ready
 cava_lib = ctypes.CDLL('./libcavacore.so')
@@ -33,13 +41,19 @@ cava_lib.cava_execute.argtypes = [
 
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
+
 config = configparser.ConfigParser()
 
-try:
-    config.read('config.ini')
-except:
+if os.path.exists(os.path.join(base_path , 'config.ini')):
+    config.read(os.path.join(base_path, 'config.ini'))
+else:
     print('cant find main config file. falling back to example config file')
-    config.read('config_example.ini')
+    if os.path.exists(os.path.join(base_path , 'config_example.ini')):
+        config.read(os.path.join(base_path , 'config_example.ini'))
+    else:
+        print("could not find the config example file. makeing one now.")
+        create_config()
+        config.read(os.path.join(base_path , 'config_example.ini'))
 
 debug = config['General'].getboolean('debug')
 if debug:
@@ -159,7 +173,10 @@ class MyWindow(Gtk.Window):
         self.song_box.set_valign(1)
         self.song_box.set_margin_top(20) 
         
-        self.back_image = Gtk.Image.new_from_file('back.png')
+        if hasattr(sys, '_MEIPASS'):
+            self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'back.png'))
+        else:
+            self.back_image = Gtk.Image.new_from_file('back.png')
         self.back_button = Gtk.Button(image = self.back_image)
         self.back_button.get_style_context().add_class("transparent-button")
         self.back_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -173,7 +190,10 @@ class MyWindow(Gtk.Window):
         self.song_box.pack_start(self.info_box, True, True, 0)
         
 
-        self.skip_image = Gtk.Image.new_from_file('skip.png')
+        if hasattr(sys, '_MEIPASS'):
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'skip.png'))
+        else:
+            self.skip_image = Gtk.Image.new_from_file('skip.png')
         self.skip_button = Gtk.Button(image = self.skip_image)
         self.skip_button.get_style_context().add_class("transparent-button")
         self.skip_button.set_relief(Gtk.ReliefStyle.NONE)
