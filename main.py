@@ -173,7 +173,10 @@ class MyWindow(Gtk.Window):
         self.song_box.set_valign(1)
         self.song_box.set_margin_top(20) 
         
-        self.back_image = Gtk.Image.new_from_file('back.png')
+        if hasattr(sys, '_MEIPASS'):
+            self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'back.png'))
+        else:
+            self.back_image = Gtk.Image.new_from_file('back.png')
         self.back_button = Gtk.Button(image = self.back_image)
         self.back_button.get_style_context().add_class("transparent-button")
         self.back_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -187,7 +190,10 @@ class MyWindow(Gtk.Window):
         self.song_box.pack_start(self.info_box, True, True, 0)
         
 
-        self.skip_image = Gtk.Image.new_from_file('skip.png')
+        if hasattr(sys, '_MEIPASS'):
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'skip.png'))
+        else:
+            self.skip_image = Gtk.Image.new_from_file('skip.png')
         self.skip_button = Gtk.Button(image = self.skip_image)
         self.skip_button.get_style_context().add_class("transparent-button")
         self.skip_button.set_relief(Gtk.ReliefStyle.NONE)
