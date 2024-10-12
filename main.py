@@ -177,7 +177,7 @@ class MyWindow(Gtk.Window):
         if hasattr(sys, '_MEIPASS'):
             self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'back.png'))
         else:
-            self.back_image = Gtk.Image.new_from_file('back.png')
+            self.back_image = Gtk.Image.new_from_file(os.path.join(base_path , 'back.png'))
         self.back_button = Gtk.Button(image = self.back_image)
         self.back_button.get_style_context().add_class("transparent-button")
         self.back_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -194,7 +194,7 @@ class MyWindow(Gtk.Window):
         if hasattr(sys, '_MEIPASS'):
             self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'skip.png'))
         else:
-            self.skip_image = Gtk.Image.new_from_file('skip.png')
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(base_path , 'skip.png'))
         self.skip_button = Gtk.Button(image = self.skip_image)
         self.skip_button.get_style_context().add_class("transparent-button")
         self.skip_button.set_relief(Gtk.ReliefStyle.NONE)
