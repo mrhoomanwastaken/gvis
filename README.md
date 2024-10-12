@@ -41,19 +41,6 @@ even some cli music players (might) work.
 there is a progress bar that shows your spot in the song and the best part is it does not work (now fixed).
 well it might work better if the app supports getting the position but I have not found any.
 
-
-# how to set up
-1. install the dependencies. dont ask me how I forgot what I even used.
-2. downlad cavacore.c , cavacore.h , and CMakeLists.txt from the cava repo and put them in a folder called cavacore.
-3. build cavacore using the instructions in the cava repo
-4. make cavacore.a into cava cavacore.so using this command
-`gcc -shared -o libcavacore.so -fPIC -Wl,--whole-archive libcavacore.a -Wl,--no-whole-archive -lfftw3`
-
-the folder structure should look like this
-![image](https://github.com/user-attachments/assets/4b785e83-641c-4684-b1a5-f9cad8304b89)
-
-it should work out of the box as long as you are using pipewire.
-
 # supported apps
 1.firefox
 2.vlc (but only when it feels like it)
@@ -61,5 +48,5 @@ it should work out of the box as long as you are using pipewire.
 
 # how to run
 the first time you run it make sure to run it in a termnal that you can input stuff into.
-if it works without any error you can run it using this command
-`nohup python ./main.py & disown && exit`
+if it works without any error you can run it using this command (or just by clicking it)
+`nohup ./gvis.bin & disown && exit`
