@@ -6,7 +6,6 @@ import tempfile
 import threading
 import gi
 import configparser
-from pydbus import SessionBus
 import urllib.request
 import cairo
 import time
@@ -15,7 +14,9 @@ import ctypes
 import sys
 import numpy as np
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
+gi.require_version('Gst', '1.0')
+gi.require_version('Gio', '2.0')
+from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gst , Gio
 from configmaker import create_config
 
 
@@ -26,7 +27,7 @@ else:
 
 
 #get cavacore ready
-cava_lib = ctypes.CDLL('./libcavacore.so')
+cava_lib = ctypes.CDLL(os.path.join(base_path , 'libcavacore.so'))
 
 cava_lib.cava_init.argtypes = [
     ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
@@ -44,16 +45,16 @@ cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
 config = configparser.ConfigParser()
 
-if os.path.exists(os.path.join(base_path , 'config.ini')):
-    config.read(os.path.join(base_path, 'config.ini'))
+if os.path.exists('config.ini'):
+    config.read('config.ini')
 else:
     print('cant find main config file. falling back to example config file')
-    if os.path.exists(os.path.join(base_path , 'config_example.ini')):
-        config.read(os.path.join(base_path , 'config_example.ini'))
+    if os.path.exists('config_example.ini'):
+        config.read('config_example.ini')
     else:
         print("could not find the config example file. makeing one now.")
         create_config()
-        config.read(os.path.join(base_path , 'config_example.ini'))
+        config.read('config_example.ini')
 
 debug = config['General'].getboolean('debug')
 if debug:
@@ -240,7 +241,7 @@ class MyWindow(Gtk.Window):
 
         self.drawing_area.connect("draw", self.on_draw)
         if self.source:
-            self.source.onPropertiesChanged = self.on_properties_changed
+            self.source.connect("g-properties-changed", self.on_properties_changed)
             self.new_song = True
             self.update_info()
             GLib.timeout_add(100, self.update_progress)
@@ -306,11 +307,28 @@ class MyWindow(Gtk.Window):
             draw_pending = False
     
     def get_mpris_service(self):
-        bus = SessionBus()
-        dbus = bus.get(".DBus")
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
+        dbus_proxy = Gio.DBusProxy.new_sync(
+            bus,
+            Gio.DBusProxyFlags.NONE,
+            None,
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            None
+        )
+        # Call the ListNames method on the D-Bus interface
+        available_services = dbus_proxy.call_sync(
+            "ListNames",              # Method name
+            None,                     # No parameters
+            Gio.DBusCallFlags.NONE,    # No special flags
+            -1,                        # No timeout
+            None                       # No cancellable
+        )
+        # Extract the names from the result
+        available_services = available_services[0]  # The result is a tuple, we want the first element
         # List available services
-        available_services = dbus.ListNames()
         mpris_services = [s for s in available_services if s.startswith("org.mpris.MediaPlayer2.")]
 
         source = None
@@ -319,12 +337,23 @@ class MyWindow(Gtk.Window):
         working_sources = []
         for i in mpris_services:
             try:     
-                working_sources.append(bus.get(i, "/org/mpris/MediaPlayer2"))
+                # Create a proxy for each MPRIS service
+                mpris_proxy = Gio.DBusProxy.new_sync(
+                    bus,
+                    Gio.DBusProxyFlags.NONE,
+                    None,
+                    i,  # Use the MPRIS service name
+                    "/org/mpris/MediaPlayer2",
+                    "org.mpris.MediaPlayer2.Player",  # Correct interface for MPRIS
+                    None
+                )
+                working_sources.append(mpris_proxy)
             except:
                 Failed_sources.append(i)
         
-        print(len(mpris_services))
-        print(len(working_sources))
+
+        print(mpris_services)
+        print(working_sources)
         
         if len(working_sources) == 1:
             source = working_sources[0]
@@ -348,15 +377,20 @@ class MyWindow(Gtk.Window):
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
         # Check if the changed properties include 'mpris:artUrl' or other relevant metadata
         print(changed_properties)
-        if 'Metadata' in changed_properties:
-            print("update")
-            self.update_info()
+        self.update_info()
 
     def update_info(self):
         if not self.source:
             return
 
-        metadata = self.source.Metadata
+        metadata_variant = self.source.call_sync(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", ("org.mpris.MediaPlayer2.Player", "Metadata")),
+                Gio.DBusCallFlags.NONE,
+                -1,  # No timeout
+                None
+        )
+        metadata = metadata_variant.unpack()[0]
 
 
         song_name = metadata.get('xesam:title')
@@ -385,9 +419,12 @@ class MyWindow(Gtk.Window):
         except TypeError:
             pass
         
+        position_variant = self.source.get_cached_property("Position")
+        current_position = position_variant.unpack()
+
         try:
-            if self.source.Position / self.source.Metadata.get('mpris:length') > 1:
-                self.progress_bar.set_fraction(self.source.Position / self.source.Metadata.get('mpris:length'))
+            if current_position / metadata.get('mpris:length') > 1:
+                self.progress_bar.set_fraction(current_position / metadata.get('mpris:length'))
             elif self.new_song:
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
@@ -402,12 +439,14 @@ class MyWindow(Gtk.Window):
                 self.progress_bar.set_fraction(0)
         self.just_updated = True
 
+
         try:
-            Rate = self.source.Rate
+            Rate = self.source.get_cached_property("rate").unpack
         except:
             Rate = 1.0
+
         try:
-            self.progress_rate = ((100000 / self.source.Metadata.get('mpris:length')) * Rate)
+            self.progress_rate = ((100000 / metadata.get('mpris:length')) * Rate)
         except TypeError:
             print('cant find song length. progress bar will not work')
             self.progress_rate = 0
@@ -438,7 +477,7 @@ class MyWindow(Gtk.Window):
     def update_progress(self):
         if self.just_updated:
             self.just_updated = False
-        elif self.source.PlaybackStatus == 'Playing':
+        elif self.source.get_cached_property("PlaybackStatus").unpack() == 'Playing':
             self.progress_bar.set_fraction(self.progress_bar.get_fraction() + self.progress_rate)
         return True
 
@@ -447,7 +486,14 @@ class MyWindow(Gtk.Window):
         global input_source
         if input_source == "Auto":
             print("input_source set to Auto. attempting to detect source.")
-            app = str(self.source.Identity)
+            identity_variant = self.source.call_sync(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", ("org.mpris.MediaPlayer2", "Identity")),
+                Gio.DBusCallFlags.NONE,
+                -1,  # No timeout
+                None  # No cancellable
+            )
+            app = identity_variant.unpack()[0]
             print(f"detected app: {app}")
             if app == "Mozilla firefox":
                 input_source = "Firefox"
