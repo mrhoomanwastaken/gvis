@@ -439,8 +439,11 @@ class MyWindow(Gtk.Window):
         except TypeError:
             pass
         
-        position_variant = self.source.get_cached_property("Position")
-        current_position = position_variant.unpack()
+        try:
+            position_variant = self.source.get_cached_property("Position")
+            current_position = position_variant.unpack()
+        except:
+            pass
 
         try:
             if current_position / metadata.get('mpris:length') > 1:
