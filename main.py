@@ -71,6 +71,8 @@ try:
     high_cut_off = int(config['gvis']['high_cut_off'])
     buffer_size = int(config['gvis']['buffer_size'])
     input_source = str(config['gvis']['input_source'])
+    vis_type = str(config['gvis']['vis_type'])
+    fill = config.getboolean('gvis' ,'fill')
 except KeyError as e:
     print(f"Missing key in config file: {e}")
     sys.exit(1)
@@ -312,14 +314,14 @@ class MyWindow(Gtk.Window):
         #this will redraw the whole screen even though very little changes between frames causeing low end gpus to melt.
         #it will also just stop drawing sometimes on lower end gpus. 
         if hasattr(self, 'sample'):
-            place_holder = 2
-            if place_holder == 1:
+            screen_height = widget.get_allocated_height()
+            if vis_type == 'bars':
                 bar_width = widget.get_allocated_width() / (number_of_bars * 2)
                 for i, value in enumerate(self.sample):
                     if i < number_of_bars:
                         i = ((number_of_bars - 1) - i)
                     # Calculate height based on the sample value
-                    height = value * widget.get_allocated_height()
+                    height = value * screen_height
                     if debug:
                         #color the start and end bars red
                         if i == 0 or i == (number_of_bars * 2) - 1:
@@ -331,25 +333,34 @@ class MyWindow(Gtk.Window):
                             cr.set_source_rgba(*color)
                         else:
                             cr.set_source_rgba(*gradient_colors[i])
-                    
-                    cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
-                    cr.fill()
-            elif place_holder == 2:
+                    cr.rectangle(i * bar_width, screen_height - height, bar_width, height)
+                    if fill:
+                        cr.fill()
+                    else:
+                        cr.stroke()
+            elif vis_type == 'lines':
                 bar_width = widget.get_allocated_width() / (number_of_bars * 2)
-                points = []
-                height_old = 0
+                cr.set_line_width(2)
+                cr.set_source_rgba(*color)
+
                 for i, value in enumerate(self.sample):
                     if i < number_of_bars:
                         i = ((number_of_bars - 1) - i)
+                    if i == number_of_bars:
+                        cr.line_to((i-1)*bar_width , screen_height)
+                        cr.line_to((i-1)*bar_width , screen_height-self.sample[0]*screen_height)
                     #Calculate height based on the sample value
-                    height = value * widget.get_allocated_height()
-                    #cr.curve_to(((i-0.5)*bar_width),(height+height_old)/2,((i-0.5)*bar_width),height/2,((i+0.5)*bar_width),height/2)
-                    cr.line_to(i*bar_width , widget.get_allocated_height()-height)
-                    height_old = height
-                
-                cr.set_source_rgba(0, 1, 1,1)
-                cr.set_line_width(2)
-                cr.stroke()
+                    height = value * screen_height
+                    cr.line_to(i*bar_width , screen_height-height)
+                    if i == 0 or i == number_of_bars * 2 - 1:
+                        cr.line_to(i*bar_width*bar_width , screen_height)
+                        if i == number_of_bars * 2 - 1:
+                            cr.line_to((number_of_bars-1)*bar_width , screen_height)
+
+                if fill:
+                    cr.fill()
+                else:
+                    cr.stroke()
     
     def get_mpris_service(self):
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
