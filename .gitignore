@@ -1,3 +1,6 @@
 nohup.out
-cavacore/
 config.ini
+venv/
+build/main/
+pydist/
+main.spec

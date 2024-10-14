@@ -6,7 +6,6 @@ import tempfile
 import threading
 import gi
 import configparser
-from pydbus import SessionBus
 import urllib.request
 import cairo
 import time
@@ -15,10 +14,20 @@ import ctypes
 import sys
 import numpy as np
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GdkPixbuf , Gdk , GLib
+gi.require_version('Gst', '1.0')
+gi.require_version('Gio', '2.0')
+from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gst , Gio
+from configmaker import create_config
+
+
+if getattr(sys, 'frozen', False):
+    base_path = os.path.dirname(sys.executable)
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
 
 #get cavacore ready
-cava_lib = ctypes.CDLL('./cavacore/build/libcavacore.so')
+cava_lib = ctypes.CDLL(os.path.join(base_path , 'libcavacore.so'))
 
 cava_lib.cava_init.argtypes = [
     ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
@@ -33,30 +42,45 @@ cava_lib.cava_execute.argtypes = [
 
 cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 
+
 config = configparser.ConfigParser()
 
-try:
+if os.path.exists('config.ini'):
     config.read('config.ini')
-except:
-    print('cant find main config file. falling back to example config file')
-    config.read('config_example.ini')
+else:
+    print('Cannot find main config file. Falling back to example config file.')
+    if os.path.exists('config_example.ini'):
+        config.read('config_example.ini')
+    else:
+        print("Could not find the config example file. Creating one now.")
+        create_config()
+        config.read('config_example.ini')
 
-debug = config['General'].getboolean('debug')
+debug = config['General'].getboolean('debug', fallback=False)
 if debug:
-    print("debug mode")
+    print("Debug mode")
 
-#configure cavacore
-number_of_bars = int(config['gvis']['bars'])
-rate = int(config['gvis']['rate'])
-channels = int(config['gvis']['channels'])
-autosens = int(config['gvis']['autosens'])
-noise_reduction = float(config['gvis']['noise_reduction'])
-low_cut_off = int(config['gvis']['low_cut_off'])
-high_cut_off = int(config['gvis']['high_cut_off'])
-buffer_size = int(config['gvis']['buffer_size'])
-input_source = str(config['gvis']['input_source'])
+# Configure cavacore
+try:
+    number_of_bars = int(config['gvis']['bars'])
+    rate = int(config['gvis']['rate'])
+    channels = int(config['gvis']['channels'])
+    autosens = int(config['gvis']['autosens'])
+    noise_reduction = float(config['gvis']['noise_reduction'])
+    low_cut_off = int(config['gvis']['low_cut_off'])
+    high_cut_off = int(config['gvis']['high_cut_off'])
+    buffer_size = int(config['gvis']['buffer_size'])
+    input_source = str(config['gvis']['input_source'])
+except KeyError as e:
+    print(f"Missing key in config file: {e}")
+    sys.exit(1)
+except ValueError as e:
+    print(f"Invalid value in config file: {e}")
+    sys.exit(1)
 
-gradient = bool(str(config['gvis']['gradient']) == 'True')
+gradient = config.getboolean('gvis' ,'gradient')
+if debug:
+    debug_color_equ = (i / ((number_of_bars * 2) - 1))
 
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
@@ -111,7 +135,6 @@ if plan == -1:
     exit(1)
 
 
-
 class MyWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="gvis")
@@ -158,7 +181,11 @@ class MyWindow(Gtk.Window):
         self.song_box.set_valign(1)
         self.song_box.set_margin_top(20) 
         
-        self.back_image = Gtk.Image.new_from_file('back.png')
+        #lets us find where the buttion images are if it is compiled with pyinstaller. 
+        if hasattr(sys, '_MEIPASS'):
+            self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'back.png'))
+        else:
+            self.back_image = Gtk.Image.new_from_file(os.path.join(base_path , 'back.png'))
         self.back_button = Gtk.Button(image = self.back_image)
         self.back_button.get_style_context().add_class("transparent-button")
         self.back_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -172,7 +199,10 @@ class MyWindow(Gtk.Window):
         self.song_box.pack_start(self.info_box, True, True, 0)
         
 
-        self.skip_image = Gtk.Image.new_from_file('skip.png')
+        if hasattr(sys, '_MEIPASS'):
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'skip.png'))
+        else:
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(base_path , 'skip.png'))
         self.skip_button = Gtk.Button(image = self.skip_image)
         self.skip_button.get_style_context().add_class("transparent-button")
         self.skip_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -214,12 +244,13 @@ class MyWindow(Gtk.Window):
         
         # Connect to MPRIS service and update the album art
         self.source = self.get_mpris_service()
-        # Start CAVA processing in a separate thread
+        # Start CAVA processing in a separate thread so it can begin processing audio
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         self.drawing_area.connect("draw", self.on_draw)
         if self.source:
-            self.source.onPropertiesChanged = self.on_properties_changed
+            self.source.connect("g-properties-changed", self.on_properties_changed)
+            self.new_song = True
             self.update_info()
             GLib.timeout_add(100, self.update_progress)
     
@@ -240,24 +271,46 @@ class MyWindow(Gtk.Window):
 
     def on_pause_button_clicked(self, button):
         if self.source:
-            self.source.PlayPause()
+            self.source.call_sync(
+                "org.mpris.MediaPlayer2.Player.PlayPause",  # D-Bus method to call
+                None,                                      # No arguments for PlayPause
+                Gio.DBusCallFlags.NONE,                    # No special flags
+                -1,                                        # No timeout
+                None                                       # No cancellable
+            )
 
     def on_back_button_clicked(self, button):
         """Skip to the previous track."""
         if self.source:
-            self.source.Previous()  # Call the Previous method from the MPRIS interface
+            self.source.call_sync(
+                "org.mpris.MediaPlayer2.Player.Previous",  # D-Bus method to call
+                None,                                      # No arguments for PlayPause
+                Gio.DBusCallFlags.NONE,                    # No special flags
+                -1,                                        # No timeout
+                None                                       # No cancellable
+            ) # Call the Previous method from the MPRIS interface
+            self.progress_bar.set_fraction(0)
+
 
     def on_skip_button_clicked(self, button):
         """Skip to the next track."""
         if self.source:
-            self.source.Next()  # Call the Next method from the MPRIS interface
+            self.source.call_sync(
+                "org.mpris.MediaPlayer2.Player.Next",  # D-Bus method to call
+                None,                                      # No arguments for PlayPause
+                Gio.DBusCallFlags.NONE,                    # No special flags
+                -1,                                        # No timeout
+                None                                       # No cancellable
+            ) # Call the Previous method from the MPRIS interface
 
     def on_draw(self, widget, cr):
         # Set the transparent background
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5) 
+        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
         cr.paint()
 
         # Draw the visualization
+        #this will redraw the whole screen even though very little changes between frames causeing low end gpus to melt.
+        #it will also just stop drawing sometimes on lower end gpus. 
         if hasattr(self, 'sample'):
             place_holder = 2
             if place_holder == 1:
@@ -267,13 +320,12 @@ class MyWindow(Gtk.Window):
                         i = ((number_of_bars - 1) - i)
                     # Calculate height based on the sample value
                     height = value * widget.get_allocated_height()
-                    # Set bar color (e.g., red)
                     if debug:
                         #color the start and end bars red
                         if i == 0 or i == (number_of_bars * 2) - 1:
                             cr.set_source_rgba(1,0,0,1)
                         else:
-                            cr.set_source_rgba(0,(1 - (i / ((number_of_bars * 2) - 1))),(i / ((number_of_bars * 2) - 1)),1)
+                            cr.set_source_rgba(0,(1 - debug_color_equ),debug_color_equ,1)
                     else:
                         if not gradient:
                             cr.set_source_rgba(*color)
@@ -300,11 +352,28 @@ class MyWindow(Gtk.Window):
                 cr.stroke()
     
     def get_mpris_service(self):
-        bus = SessionBus()
-        dbus = bus.get(".DBus")
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
+        dbus_proxy = Gio.DBusProxy.new_sync(
+            bus,
+            Gio.DBusProxyFlags.NONE,
+            None,
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            None
+        )
+        # Call the ListNames method on the D-Bus interface
+        available_services = dbus_proxy.call_sync(
+            "ListNames",              # Method name
+            None,                     # No parameters
+            Gio.DBusCallFlags.NONE,    # No special flags
+            -1,                        # No timeout
+            None                       # No cancellable
+        )
+        # Extract the names from the result
+        available_services = available_services[0]  # The result is a tuple, we want the first element
         # List available services
-        available_services = dbus.ListNames()
         mpris_services = [s for s in available_services if s.startswith("org.mpris.MediaPlayer2.")]
 
         source = None
@@ -313,10 +382,23 @@ class MyWindow(Gtk.Window):
         working_sources = []
         for i in mpris_services:
             try:     
-                working_sources.append(bus.get(i, "/org/mpris/MediaPlayer2"))
+                # Create a proxy for each MPRIS service
+                mpris_proxy = Gio.DBusProxy.new_sync(
+                    bus,
+                    Gio.DBusProxyFlags.NONE,
+                    None,
+                    i,  # Use the MPRIS service name
+                    "/org/mpris/MediaPlayer2",
+                    "org.mpris.MediaPlayer2.Player",  # Correct interface for MPRIS
+                    None
+                )
+                working_sources.append(mpris_proxy)
             except:
                 Failed_sources.append(i)
         
+
+        print(mpris_services)
+        print(working_sources)
         
         if len(working_sources) == 1:
             source = working_sources[0]
@@ -332,22 +414,28 @@ class MyWindow(Gtk.Window):
                 else:
                     print('input timed out chooseing first option')
                     source = working_sources[0]
-
+        elif len(working_sources) == 0:
+            raise ValueError("there needs to be at least one working mpris source")
 
         return source
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
-        # Check if the changed properties include 'mpris:artUrl' or other relevant metadata
         print(changed_properties)
-        if 'Metadata' in changed_properties:
-            print("update")
-            self.update_info()
+        self.update_info()
 
     def update_info(self):
         if not self.source:
             return
 
-        metadata = self.source.Metadata
+        #I love how this pile of garbage replaced pydbus. this looks so much better and I am so glad I have to use it.
+        metadata_variant = self.source.call_sync(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", ("org.mpris.MediaPlayer2.Player", "Metadata")),
+                Gio.DBusCallFlags.NONE,
+                -1,  # No timeout
+                None
+        )
+        metadata = metadata_variant.unpack()[0]
 
 
         song_name = metadata.get('xesam:title')
@@ -355,13 +443,15 @@ class MyWindow(Gtk.Window):
 
         try:
             if self.old_song != song_name:
-                new_song = True
+                self.new_song = True
                 self.old_song = song_name
             else:
-                return True
-        except:
+                self.old_song = song_name
+                self.new_song = False
+        except Exception as e:
+            print(e)
             self.old_song = song_name
-            new_song = True
+            self.new_song = True
 
         try:
             album_name = metadata.get('xesam:album')
@@ -373,25 +463,54 @@ class MyWindow(Gtk.Window):
             self.artist_name.set_label(artist_name[0])
         except TypeError:
             pass
-
-        self.just_updated = True
+        
         try:
-            if self.source.Position / self.source.Metadata.get('mpris:length') > 1:
-                self.progress_bar.set_fraction(self.source.Position / self.source.Metadata.get('mpris:length'))
-            elif new_song:
+            #get the current spot in the song. I have yet to see any app that supports this.
+            position_variant = self.source.get_cached_property("Position")
+            current_position = position_variant.unpack()
+        except:
+            pass
+
+        #this block of code is evil and has eaten many hours of my life.
+        #note: this is broken and also bad
+        try:
+            if current_position / metadata.get('mpris:length') > 1:
+                self.progress_bar.set_fraction(current_position / metadata.get('mpris:length'))
+            elif self.new_song:
+                #if you see this error being spammed in the terminal be ready for it to consume the rest of your day trying to make it stop.
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except UnboundLocalError:
-            pass
+            if self.new_song:
+                print('cant find accurate position in song assuming song just started')
+                self.progress_bar.set_fraction(0)
+        except gi.repository.GLib.GError as e:
+            print(e)
+            if self.new_song:
+                print('cant find accurate position in song assuming song just started')
+                self.progress_bar.set_fraction(0)
+        self.just_updated = True
 
+
+        #I know this var does not follow PEP 8 but counterpoint, I dont care. also rate is used by cava.
+        #Im derectly calling out sourcey for always telling me that.
         try:
-            Rate = self.source.Rate
+            Rate = self.source.get_cached_property("rate").unpack
         except:
             Rate = 1.0
-        self.progress_rate = ((100000 / self.source.Metadata.get('mpris:length')) * Rate)
 
+        
+        try:
+            #oh boy floats. im sure they will not cause any issues
+            #why does mpris use pico seconds? its for things like music, even milliseconds are a bit much.
+            self.progress_rate = ((100000 / metadata.get('mpris:length')) * Rate)
+        except TypeError:
+            print('cant find song length. progress bar will not work')
+            self.progress_rate = 0
+        
         album_image_url = metadata.get("mpris:artUrl")
-
+        #this will fail the first few times becuase it takes a second for the app to give a image url. 
+        #oh well.
         if album_image_url:
             # Download the image
             try:
@@ -399,6 +518,7 @@ class MyWindow(Gtk.Window):
                 image_data = response.read()
 
                 # Load image data into GdkPixbuf
+                #GdkPixbuf is depracated in gtk 4 and will be a pain translate over.
                 loader = GdkPixbuf.PixbufLoader.new()
                 loader.write(image_data)
                 loader.close()
@@ -413,10 +533,19 @@ class MyWindow(Gtk.Window):
                 print(f"Failed to load album image: {e}")
         else:
             print("No album image available.")
+        
+        self.new_song = False
     def update_progress(self):
+        #Warning: everything related to the progress bar is cursed and always breaks.
+        #this code is the most stable part of handling the progress bar.
+        #thats not saying much though
         if self.just_updated:
             self.just_updated = False
-        elif self.source.PlaybackStatus == 'Playing':
+        #if its paused you should not update the progress bar.
+        elif self.source.get_cached_property("PlaybackStatus").unpack() == 'Playing':
+            #this will sometimes end up setting the fraction to a crazy high amount making it always full
+            #it will only happen from the second song onwards
+            #prob an issue with the progress bar not reseting or self.progress_rate being borked. 
             self.progress_bar.set_fraction(self.progress_bar.get_fraction() + self.progress_rate)
         return True
 
@@ -425,26 +554,47 @@ class MyWindow(Gtk.Window):
         global input_source
         if input_source == "Auto":
             print("input_source set to Auto. attempting to detect source.")
-            app = str(self.source.Identity)
+            #get the music app that mpris is connected to.
+            identity_variant = self.source.call_sync(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", ("org.mpris.MediaPlayer2", "Identity")),
+                Gio.DBusCallFlags.NONE,
+                -1,  # No timeout
+                None  # No cancellable
+            )
+            app = identity_variant.unpack()[0]
+
+            #use the app name to get the pipewire node.name of the music app
+            #it only supports firefox and vlc right now becuase there is no pattern or standerd for naming pipewire nodes so they have to be added manually (fun!)
             print(f"detected app: {app}")
             if app == "Mozilla firefox":
                 input_source = "Firefox"
-            if app == "VLC media player":
+            elif app == "VLC media player":
                 input_source = 'VLC media player (LibVLC 3.0.21)'
             else:
                 print(f"unsupported app {app} falling back to 'auto'")
                 input_source = "auto"
             print(f"setting audio target to {input_source}")
+
         
+        #open pw-cat so we can stream audio data from the app.
+        #or if it input_source is auto it will just stream audio from the microphone.
         process = subprocess.Popen(
             ["pw-cat", "-r", "--target", str(input_source), "--format" , "f32" , "-"],
             stdout=subprocess.PIPE,
             bufsize=buffer_size * channels,
         )
 
+        #I dont know what selector is or how it got here but I am not going to touch it.
         selector = selectors.DefaultSelector()
+
+        #start processing the audio data
         while True:
+            #this will hold the thred forever if there is no audio coming through.
+            #this does 2 things 1. if the pw-cat crashed and died it will take the app with it
+            #2. it makes the visualization pause whenever the music does
             data = process.stdout.read(buffer_size * channels)
+            #this is useless becuase data will always be True. I think... Im not going to mess with it right now.
             if not data:
                 break
             # Process audio data
@@ -460,7 +610,7 @@ class MyWindow(Gtk.Window):
     def update_visualization(self, sample):
         # Update the visualization data and redraw
         self.sample = sample
-        self.drawing_area.queue_draw()  # Request to redraw the area
+        GLib.idle_add(self.drawing_area.queue_draw)  # Request to redraw the area
 
 
 
