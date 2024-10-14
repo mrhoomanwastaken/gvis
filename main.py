@@ -339,12 +339,12 @@ class MyWindow(Gtk.Window):
                 points = []
                 height_old = 0
                 for i, value in enumerate(self.sample):
-                    #if i < number_of_bars:
-                    #    i = ((number_of_bars - 1) - i)
-                    # Calculate height based on the sample value
+                    if i < number_of_bars:
+                        i = ((number_of_bars - 1) - i)
+                    #Calculate height based on the sample value
                     height = value * widget.get_allocated_height()
-                    # Set bar color (e.g., red)
-                    cr.curve_to(((i-0.5)*bar_width),(height+height_old)/2,((i-0.5)*bar_width),height/2,((i+0.5)*bar_width),height/2)
+                    #cr.curve_to(((i-0.5)*bar_width),(height+height_old)/2,((i-0.5)*bar_width),height/2,((i+0.5)*bar_width),height/2)
+                    cr.line_to(i*bar_width , widget.get_allocated_height()-height)
                     height_old = height
                 
                 cr.set_source_rgba(0, 1, 1,1)
