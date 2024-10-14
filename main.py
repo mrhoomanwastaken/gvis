@@ -48,31 +48,40 @@ config = configparser.ConfigParser()
 if os.path.exists('config.ini'):
     config.read('config.ini')
 else:
-    print('cant find main config file. falling back to example config file')
+    print('Cannot find main config file. Falling back to example config file.')
     if os.path.exists('config_example.ini'):
         config.read('config_example.ini')
     else:
-        print("could not find the config example file. makeing one now.")
+        print("Could not find the config example file. Creating one now.")
         create_config()
         config.read('config_example.ini')
 
-debug = config['General'].getboolean('debug')
+debug = config['General'].getboolean('debug', fallback=False)
 if debug:
-    print("debug mode")
+    print("Debug mode")
 
-#configure cavacore
-number_of_bars = int(config['gvis']['bars'])
-rate = int(config['gvis']['rate'])
-channels = int(config['gvis']['channels'])
-autosens = int(config['gvis']['autosens'])
-noise_reduction = float(config['gvis']['noise_reduction'])
-low_cut_off = int(config['gvis']['low_cut_off'])
-high_cut_off = int(config['gvis']['high_cut_off'])
-buffer_size = int(config['gvis']['buffer_size'])
-input_source = str(config['gvis']['input_source'])
+# Configure cavacore
+try:
+    number_of_bars = int(config['gvis']['bars'])
+    rate = int(config['gvis']['rate'])
+    channels = int(config['gvis']['channels'])
+    autosens = int(config['gvis']['autosens'])
+    noise_reduction = float(config['gvis']['noise_reduction'])
+    low_cut_off = int(config['gvis']['low_cut_off'])
+    high_cut_off = int(config['gvis']['high_cut_off'])
+    buffer_size = int(config['gvis']['buffer_size'])
+    input_source = str(config['gvis']['input_source'])
+except KeyError as e:
+    print(f"Missing key in config file: {e}")
+    sys.exit(1)
+except ValueError as e:
+    print(f"Invalid value in config file: {e}")
+    sys.exit(1)
 
 gradient = config.getboolean('gvis' ,'gradient')
 draw_pending_check = config.getboolean('gvis' , 'draw_pending_check')
+if debug:
+    debug_color_equ = (i / ((number_of_bars * 2) - 1))
 
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
@@ -174,6 +183,7 @@ class MyWindow(Gtk.Window):
         self.song_box.set_valign(1)
         self.song_box.set_margin_top(20) 
         
+        #lets us find where the buttion images are if it is compiled with pyinstaller. 
         if hasattr(sys, '_MEIPASS'):
             self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'back.png'))
         else:
@@ -236,7 +246,7 @@ class MyWindow(Gtk.Window):
         
         # Connect to MPRIS service and update the album art
         self.source = self.get_mpris_service()
-        # Start CAVA processing in a separate thread
+        # Start CAVA processing in a separate thread so it can begin processing audio
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         self.drawing_area.connect("draw", self.on_draw)
@@ -298,10 +308,12 @@ class MyWindow(Gtk.Window):
     def on_draw(self, widget, cr):
         global draw_pending
         # Set the transparent background
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5) 
+        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
         cr.paint()
 
         # Draw the visualization
+        #this will redraw the whole screen even though very little changes between frames causeing low end gpus to melt.
+        #it will also just stop drawing sometimes on lower end gpus. 
         if hasattr(self, 'sample'):
             bar_width = widget.get_allocated_width() / (number_of_bars * 2)
             for i, value in enumerate(self.sample):
@@ -309,13 +321,12 @@ class MyWindow(Gtk.Window):
                     i = ((number_of_bars - 1) - i)
                 # Calculate height based on the sample value
                 height = value * widget.get_allocated_height()
-                # Set bar color (e.g., red)
                 if debug:
                     #color the start and end bars red
                     if i == 0 or i == (number_of_bars * 2) - 1:
                         cr.set_source_rgba(1,0,0,1)
                     else:
-                        cr.set_source_rgba(0,(1 - (i / ((number_of_bars * 2) - 1))),(i / ((number_of_bars * 2) - 1)),1)
+                        cr.set_source_rgba(0,(1 - debug_color_equ),debug_color_equ,1)
                 else:
                     if not gradient:
                         cr.set_source_rgba(*color)
@@ -324,6 +335,7 @@ class MyWindow(Gtk.Window):
                     
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
+            #this stops it from melting low end gpus. it also slows it down becuase the python gremlins do not like booleans.
             draw_pending = False
     
     def get_mpris_service(self):
@@ -395,7 +407,6 @@ class MyWindow(Gtk.Window):
         return source
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
-        # Check if the changed properties include 'mpris:artUrl' or other relevant metadata
         print(changed_properties)
         self.update_info()
 
@@ -403,6 +414,7 @@ class MyWindow(Gtk.Window):
         if not self.source:
             return
 
+        #I love how this pile of garbage replaced pydbus. this looks so much better and I am so glad I have to use it.
         metadata_variant = self.source.call_sync(
                 "org.freedesktop.DBus.Properties.Get",
                 GLib.Variant("(ss)", ("org.mpris.MediaPlayer2.Player", "Metadata")),
@@ -439,13 +451,17 @@ class MyWindow(Gtk.Window):
         except TypeError:
             pass
         
+        #get the current spot in the song. I have yet to see any app that supports this.
         position_variant = self.source.get_cached_property("Position")
         current_position = position_variant.unpack()
 
+        #this block of code is evil and has eaten many hours of my life.
+        #note: this is broken and also bad
         try:
             if current_position / metadata.get('mpris:length') > 1:
                 self.progress_bar.set_fraction(current_position / metadata.get('mpris:length'))
             elif self.new_song:
+                #if you see this error being spammed in the terminal be ready for it to consume the rest of your day trying to make it stop.
                 print('cant find accurate position in song assuming song just started')
                 self.progress_bar.set_fraction(0)
         except UnboundLocalError:
@@ -460,17 +476,25 @@ class MyWindow(Gtk.Window):
         self.just_updated = True
 
 
+        #I know this var does not follow PEP 8 but counterpoint, I dont care. also rate is used by cava.
+        #Im derectly calling out sourcey for always telling me that.
         try:
             Rate = self.source.get_cached_property("rate").unpack
         except:
             Rate = 1.0
 
+        
         try:
+            #oh boy floats. im sure they will not cause any issues
+            #why does mpris use pico seconds? its for things like music, even milliseconds are a bit much.
             self.progress_rate = ((100000 / metadata.get('mpris:length')) * Rate)
         except TypeError:
             print('cant find song length. progress bar will not work')
             self.progress_rate = 0
+        
         album_image_url = metadata.get("mpris:artUrl")
+        #this will fail the first few times becuase it takes a second for the app to give a image url. 
+        #oh well.
         if album_image_url:
             # Download the image
             try:
@@ -478,6 +502,7 @@ class MyWindow(Gtk.Window):
                 image_data = response.read()
 
                 # Load image data into GdkPixbuf
+                #GdkPixbuf is depracated in gtk 4 and will be a pain translate over.
                 loader = GdkPixbuf.PixbufLoader.new()
                 loader.write(image_data)
                 loader.close()
@@ -495,9 +520,16 @@ class MyWindow(Gtk.Window):
         
         self.new_song = False
     def update_progress(self):
+        #Warning: everything related to the progress bar is cursed and always breaks.
+        #this code is the most stable part of handling the progress bar.
+        #thats not saying much though
         if self.just_updated:
             self.just_updated = False
+        #if its paused you should not update the progress bar.
         elif self.source.get_cached_property("PlaybackStatus").unpack() == 'Playing':
+            #this will sometimes end up setting the fraction to a crazy high amount making it always full
+            #it will only happen from the second song onwards
+            #prob an issue with the progress bar not reseting or self.progress_rate being borked. 
             self.progress_bar.set_fraction(self.progress_bar.get_fraction() + self.progress_rate)
         return True
 
@@ -506,6 +538,7 @@ class MyWindow(Gtk.Window):
         global input_source
         if input_source == "Auto":
             print("input_source set to Auto. attempting to detect source.")
+            #get the music app that mpris is connected to.
             identity_variant = self.source.call_sync(
                 "org.freedesktop.DBus.Properties.Get",
                 GLib.Variant("(ss)", ("org.mpris.MediaPlayer2", "Identity")),
@@ -514,6 +547,9 @@ class MyWindow(Gtk.Window):
                 None  # No cancellable
             )
             app = identity_variant.unpack()[0]
+
+            #use the app name to get the pipewire node.name of the music app
+            #it only supports firefox and vlc right now becuase there is no pattern or standerd for naming pipewire nodes so they have to be added manually (fun!)
             print(f"detected app: {app}")
             if app == "Mozilla firefox":
                 input_source = "Firefox"
@@ -523,17 +559,26 @@ class MyWindow(Gtk.Window):
                 print(f"unsupported app {app} falling back to 'auto'")
                 input_source = "auto"
             print(f"setting audio target to {input_source}")
+
         
+        #open pw-cat so we can stream audio data from the app.
+        #or if it input_source is auto it will just stream audio from the microphone.
         process = subprocess.Popen(
             ["pw-cat", "-r", "--target", str(input_source), "--format" , "f32" , "-"],
             stdout=subprocess.PIPE,
             bufsize=buffer_size * channels,
         )
 
+        #I dont know what selector is or how it got here but I am not going to touch it.
         selector = selectors.DefaultSelector()
-        global draw_pending
+
+        #start processing the audio data
         while True:
+            #this will hold the thred forever if there is no audio coming through.
+            #this does 2 things 1. if the pw-cat crashed and died it will take the app with it
+            #2. it makes the visualization pause whenever the music does
             data = process.stdout.read(buffer_size * channels)
+            #this is useless becuase data will always be True. I think... Im not going to mess with it right now.
             if not data:
                 break
             # Process audio data
