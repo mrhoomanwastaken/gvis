@@ -79,7 +79,6 @@ except ValueError as e:
     sys.exit(1)
 
 gradient = config.getboolean('gvis' ,'gradient')
-draw_pending_check = config.getboolean('gvis' , 'draw_pending_check')
 if debug:
     debug_color_equ = (i / ((number_of_bars * 2) - 1))
 
@@ -135,7 +134,6 @@ if plan == -1:
     print("Error initializing cava")
     exit(1)
 
-draw_pending = False
 
 class MyWindow(Gtk.Window):
     def __init__(self):
@@ -306,7 +304,6 @@ class MyWindow(Gtk.Window):
             ) # Call the Previous method from the MPRIS interface
 
     def on_draw(self, widget, cr):
-        global draw_pending
         # Set the transparent background
         cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
         cr.paint()
@@ -335,8 +332,6 @@ class MyWindow(Gtk.Window):
                     
                 cr.rectangle(i * bar_width, widget.get_allocated_height() - height, bar_width, height)
                 cr.fill()
-            #this stops it from melting low end gpus. it also slows it down becuase the python gremlins do not like booleans.
-            draw_pending = False
     
     def get_mpris_service(self):
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -451,9 +446,12 @@ class MyWindow(Gtk.Window):
         except TypeError:
             pass
         
-        #get the current spot in the song. I have yet to see any app that supports this.
-        position_variant = self.source.get_cached_property("Position")
-        current_position = position_variant.unpack()
+        try:
+            #get the current spot in the song. I have yet to see any app that supports this.
+            position_variant = self.source.get_cached_property("Position")
+            current_position = position_variant.unpack()
+        except:
+            pass
 
         #this block of code is evil and has eaten many hours of my life.
         #note: this is broken and also bad
@@ -594,10 +592,7 @@ class MyWindow(Gtk.Window):
     def update_visualization(self, sample):
         # Update the visualization data and redraw
         self.sample = sample
-        global draw_pending , draw_pending_check
-        if not draw_pending or not draw_pending_check:
-            draw_pending = True
-            self.drawing_area.queue_draw()  # Request to redraw the area
+        GLib.idle_add(self.drawing_area.queue_draw)  # Request to redraw the area
 
 
 
