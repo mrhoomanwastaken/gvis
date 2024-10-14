@@ -315,8 +315,10 @@ class MyWindow(Gtk.Window):
         #it will also just stop drawing sometimes on lower end gpus. 
         if hasattr(self, 'sample'):
             screen_height = widget.get_allocated_height()
+            global vis_type
             if vis_type == 'bars':
                 bar_width = widget.get_allocated_width() / (number_of_bars * 2)
+                cr.move_to(0,screen_height - self.sample[0])
                 for i, value in enumerate(self.sample):
                     if i < number_of_bars:
                         i = ((number_of_bars - 1) - i)
@@ -333,11 +335,14 @@ class MyWindow(Gtk.Window):
                             cr.set_source_rgba(*color)
                         else:
                             cr.set_source_rgba(*gradient_colors[i])
-                    cr.rectangle(i * bar_width, screen_height - height, bar_width, height)
-                    if fill:
-                        cr.fill()
-                    else:
-                        cr.stroke()
+                    
+
+                    #cr.rectangle(i * bar_width, screen_height - height, bar_width, height)
+                if fill:
+                    cr.fill()
+                else:
+                    cr.stroke()
+            
             elif vis_type == 'lines':
                 bar_width = widget.get_allocated_width() / (number_of_bars * 2)
                 cr.set_line_width(2)
@@ -347,21 +352,21 @@ class MyWindow(Gtk.Window):
                     if i < number_of_bars:
                         i = ((number_of_bars - 1) - i)
                     if i == number_of_bars:
-                        cr.line_to((i-1)*bar_width , screen_height)
-                        cr.line_to((i-1)*bar_width , screen_height-self.sample[0]*screen_height)
+                        cr.move_to((i-1)*bar_width , screen_height*(1-self.sample[0]))
                     #Calculate height based on the sample value
                     height = value * screen_height
-                    cr.line_to(i*bar_width , screen_height-height)
+                    cr.line_to(i*bar_width , screen_height*(1-value))
                     if i == 0 or i == number_of_bars * 2 - 1:
                         cr.line_to(i*bar_width*bar_width , screen_height)
-                        if i == number_of_bars * 2 - 1:
-                            cr.line_to((number_of_bars-1)*bar_width , screen_height)
 
                 if fill:
                     cr.fill()
                 else:
                     cr.stroke()
-    
+            else:
+                vis_type = 'bars'
+                self.queue_draw()
+
     def get_mpris_service(self):
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
