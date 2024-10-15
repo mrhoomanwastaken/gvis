@@ -60,6 +60,8 @@ debug = config['General'].getboolean('debug', fallback=False)
 if debug:
     print("Debug mode")
 
+
+
 # Configure cavacore
 try:
     number_of_bars = int(config['gvis']['bars'])
@@ -83,39 +85,16 @@ except ValueError as e:
 gradient = config.getboolean('gvis' ,'gradient')
 if debug:
     debug_color_equ = (i / ((number_of_bars * 2) - 1))
-
+ 
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
     colors = [float(i) for i in colors]
     colors_list = []
     if len(colors) % 4 == 0:
-        colors_amount = len(colors) // 4
-        for i in range(colors_amount):
+        num_colors = len(colors) // 4
+        for i in range(num_colors):
             color = tuple(colors[(i*4):((i+1)*4)])
-            colors_list.append(color)
-        
-        gradient_colors = []
-        for i in range(number_of_bars * channels):
-            t = i / ((number_of_bars * 2) - 1)
-            """Linearly interpolate between a list of colors (RGBA) based on t in [0, 1]."""
-            num_colors = len(colors_list)
-                        
-            # Find the interval in which t falls
-            if num_colors < 2:
-                raise ValueError("At least two colors are required for interpolation.")
-                        
-            # Calculate the index of the first color
-            index = min(int(t * (num_colors - 1)), num_colors - 2)
-            ratio = t * (num_colors - 1) - index  # Calculate the ratio between the two colors
-                            
-            # Interpolate between the two colors
-            gradient_colors.append (tuple(
-                colors_list[index][i] + ratio * (colors_list[index + 1][i] - colors_list[index][i])
-                for i in range(4)  # RGBA has 4 components
-                ))
-    
-    
-                
+            colors_list.append(color)               
 else:
     #turn color1 into a list
     color1 = config['gvis']['color1'].split(',')
@@ -135,6 +114,7 @@ plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduct
 if plan == -1:
     print("Error initializing cava")
     exit(1)
+
 
 
 class MyWindow(Gtk.Window):
@@ -311,57 +291,84 @@ class MyWindow(Gtk.Window):
         cr.paint()
 
         # Draw the visualization
-        #this will redraw the whole screen even though very little changes between frames causeing low end gpus to melt.
-        #it will also just stop drawing sometimes on lower end gpus. 
         if hasattr(self, 'sample'):
+            #all of this stuff may be able to be calculated in advance.
+            #the only issue is that resizing the window would mess it up.
             screen_height = widget.get_allocated_height()
+            bar_width = widget.get_allocated_width() / (number_of_bars * 2)
+            global vis_type
+
+            if not gradient:
+                cr.set_source_rgba(*color)
+            else:
+                #gradient calculations
+                pattern = cairo.LinearGradient(0, 0, widget.get_allocated_width(), screen_height)
+                for i, color in enumerate(colors_list):
+                    stop_position = i / (num_colors - 1)  # Normalize between 0 and 1
+                    pattern.add_color_stop_rgba(stop_position, *color)
+                cr.set_source(pattern)
+    
             if vis_type == 'bars':
-                bar_width = widget.get_allocated_width() / (number_of_bars * 2)
-                for i, value in enumerate(self.sample):
-                    if i < number_of_bars:
-                        i = ((number_of_bars - 1) - i)
-                    # Calculate height based on the sample value
-                    height = value * screen_height
-                    if debug:
-                        #color the start and end bars red
-                        if i == 0 or i == (number_of_bars * 2) - 1:
-                            cr.set_source_rgba(1,0,0,1)
+                    for i, value in enumerate(self.sample):
+                        #this whole block of code assumes that 2 channels are being used.
+                        #granted no one uses mono audio so it does not matter that much.
+                        if i < number_of_bars:
+                            i = (number_of_bars - i)
+                            flip = -1
                         else:
-                            cr.set_source_rgba(0,(1 - debug_color_equ),debug_color_equ,1)
-                    else:
-                        if not gradient:
-                            cr.set_source_rgba(*color)
-                        else:
-                            cr.set_source_rgba(*gradient_colors[i])
-                    cr.rectangle(i * bar_width, screen_height - height, bar_width, height)
+                            flip = 1
+                        if i == number_of_bars:
+                            #this attaches the two channels together.
+                            #it does use a diagnal line but its impossible to see above 10 bars.
+                            #we also need it or the filler will go crazy
+                            cr.move_to(i*bar_width , screen_height*(1-self.sample[0]))
+                        # Calculate height based on the sample value
+                        height = value * screen_height
+                        #draw just the tops and one side of the bars.
+                        #cuts the amount of lines in half making it FAST
+                        cr.line_to(i*bar_width,screen_height*(1-value))
+                        cr.line_to((i+flip)*bar_width,screen_height*(1-value))
+
+                        if i == 1 or i == number_of_bars * 2 - 1:
+                            #draws lines on the sides and bottom.
+                            #if we did not do this it would fill in a straight line twords the middle.
+                            cr.line_to((i+flip)*bar_width , screen_height)
+                            cr.line_to(widget.get_allocated_width()/2 , screen_height)
+                    
+                    #stroke is mostly for debugging but you can use it if you want
                     if fill:
                         cr.fill()
                     else:
                         cr.stroke()
+                
             elif vis_type == 'lines':
-                bar_width = widget.get_allocated_width() / (number_of_bars * 2)
-                cr.set_line_width(2)
-                cr.set_source_rgba(*color)
+                    cr.set_line_width(2)
 
-                for i, value in enumerate(self.sample):
-                    if i < number_of_bars:
-                        i = ((number_of_bars - 1) - i)
-                    if i == number_of_bars:
-                        cr.line_to((i-1)*bar_width , screen_height)
-                        cr.line_to((i-1)*bar_width , screen_height-self.sample[0]*screen_height)
-                    #Calculate height based on the sample value
-                    height = value * screen_height
-                    cr.line_to(i*bar_width , screen_height-height)
-                    if i == 0 or i == number_of_bars * 2 - 1:
-                        cr.line_to(i*bar_width*bar_width , screen_height)
-                        if i == number_of_bars * 2 - 1:
-                            cr.line_to((number_of_bars-1)*bar_width , screen_height)
+                    for i, value in enumerate(self.sample):
+                        #this is almost the same as the bar function but it draws only 1 line per bar.
+                        if i < number_of_bars:
+                            i = (number_of_bars - i)
+                            flip = -1
+                        else:
+                            flip = 1
+                        if i == number_of_bars:
+                            cr.move_to(i*bar_width , screen_height*(1-self.sample[0]))
+                        #Calculate height based on the sample value
+                        height = value * screen_height
+                        cr.line_to((i+flip)*bar_width , screen_height*(1-value))
+                        if i == 1 or i == number_of_bars * 2 - 1:
+                            cr.line_to((i+flip)*bar_width , screen_height)
+                            cr.line_to(widget.get_allocated_width()/2 , screen_height)
 
-                if fill:
-                    cr.fill()
-                else:
-                    cr.stroke()
-    
+                    if fill:
+                        cr.fill()
+                    else:
+                        cr.stroke()
+            else:
+                #fallback if there is something weird in the config.
+                vis_type = 'bars'
+                self.queue_draw()
+
     def get_mpris_service(self):
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
