@@ -322,7 +322,6 @@ class MyWindow(Gtk.Window):
                         if i == 1 or i == number_of_bars * 2 - 1:
                             cr.line_to((i+flip)*bar_width , screen_height)
                             cr.line_to(widget.get_allocated_width()/2 , screen_height)
-                        #cr.rectangle(i * bar_width, screen_height - height, bar_width, height)
                     if fill:
                         cr.fill()
                     else:
