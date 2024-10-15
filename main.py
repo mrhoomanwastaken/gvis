@@ -292,6 +292,8 @@ class MyWindow(Gtk.Window):
 
         # Draw the visualization
         if hasattr(self, 'sample'):
+            #all of this stuff may be able to be calculated in advance.
+            #the only issue is that resizing the window would mess it up.
             screen_height = widget.get_allocated_height()
             bar_width = widget.get_allocated_width() / (number_of_bars * 2)
             global vis_type
@@ -299,6 +301,7 @@ class MyWindow(Gtk.Window):
             if not gradient:
                 cr.set_source_rgba(*color)
             else:
+                #gradient calculations
                 pattern = cairo.LinearGradient(0, 0, widget.get_allocated_width(), screen_height)
                 for i, color in enumerate(colors_list):
                     stop_position = i / (num_colors - 1)  # Normalize between 0 and 1
@@ -307,21 +310,32 @@ class MyWindow(Gtk.Window):
     
             if vis_type == 'bars':
                     for i, value in enumerate(self.sample):
+                        #this whole block of code assumes that 2 channels are being used.
+                        #granted no one uses mono audio so it does not matter that much.
                         if i < number_of_bars:
                             i = (number_of_bars - i)
                             flip = -1
                         else:
                             flip = 1
                         if i == number_of_bars:
+                            #this attaches the two channels together.
+                            #it does use a diagnal line but its impossible to see above 10 bars.
+                            #we also need it or the filler will go crazy
                             cr.move_to(i*bar_width , screen_height*(1-self.sample[0]))
                         # Calculate height based on the sample value
                         height = value * screen_height
+                        #draw just the tops and one side of the bars.
+                        #cuts the amount of lines in half making it FAST
                         cr.line_to(i*bar_width,screen_height*(1-value))
                         cr.line_to((i+flip)*bar_width,screen_height*(1-value))
 
                         if i == 1 or i == number_of_bars * 2 - 1:
+                            #draws lines on the sides and bottom.
+                            #if we did not do this it would fill in a straight line twords the middle.
                             cr.line_to((i+flip)*bar_width , screen_height)
                             cr.line_to(widget.get_allocated_width()/2 , screen_height)
+                    
+                    #stroke is mostly for debugging but you can use it if you want
                     if fill:
                         cr.fill()
                     else:
@@ -331,6 +345,7 @@ class MyWindow(Gtk.Window):
                     cr.set_line_width(2)
 
                     for i, value in enumerate(self.sample):
+                        #this is almost the same as the bar function but it draws only 1 line per bar.
                         if i < number_of_bars:
                             i = (number_of_bars - i)
                             flip = -1
@@ -350,6 +365,7 @@ class MyWindow(Gtk.Window):
                     else:
                         cr.stroke()
             else:
+                #fallback if there is something weird in the config.
                 vis_type = 'bars'
                 self.queue_draw()
 
