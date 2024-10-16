@@ -85,6 +85,14 @@ except ValueError as e:
 gradient = config.getboolean('gvis' ,'gradient')
 if debug:
     debug_color_equ = (i / ((number_of_bars * 2) - 1))
+
+#get the background color
+background_rgba = config['gvis']['background_col'].split(',')
+if len(background_rgba) == 4:
+    background_rgba = [float(i) for i in background_rgba]
+    background_col = tuple(background_rgba)
+else:
+    background_col(0,0,0,0.5)
  
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
@@ -94,7 +102,7 @@ if gradient:
         num_colors = len(colors) // 4
         for i in range(num_colors):
             color = tuple(colors[(i*4):((i+1)*4)])
-            colors_list.append(color)               
+            colors_list.append(color)      
 else:
     #turn color1 into a list
     color1 = config['gvis']['color1'].split(',')
@@ -287,7 +295,7 @@ class MyWindow(Gtk.Window):
 
     def on_draw(self, widget, cr):
         # Set the transparent background
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5)
+        cr.set_source_rgba(*background_col)
         cr.paint()
 
         # Draw the visualization
