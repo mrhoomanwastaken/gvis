@@ -2,16 +2,16 @@ A music visulizer based on cavacore and built with Gtk+3
 ## this app only works with pipewire right now becuase that is what I use and I have no way of testing anything else.
 
 
-![image](https://github.com/user-attachments/assets/25d1961d-f445-4d02-82cf-bbce99bfbe86)
+![image](https://github.com/user-attachments/assets/16135590-98e1-4178-9906-b0680c344506)
 
-Im not gay I just like the look of rainbows
+
 
 # features
 
 ## no limits!
 this does not have any of the limits that normal cava has!
 want to have 1,000 bars and make your gpu explode? now you can!
-![image](https://github.com/user-attachments/assets/20ed4d75-984b-411b-92e0-af87b2ddafe4)
+![image](https://github.com/user-attachments/assets/df734c92-c526-403c-b93c-0e064890679c)
 
 dont go too high though or it will seg fault and crash.
 its almost like you are not suppost to make cavacore do that.
@@ -37,7 +37,7 @@ things like discord pings wont show up on the visulisation.
 any app the supports mpris MediaPlayer2 (aka any app that you can pause without going to the app) can be controlled via gvis.
 even some cli music players (might) work.
 
-## song progress bar (less scuffed)!
+## song progress bar (only scuffed when it wants to be)!
 there is a progress bar that shows your spot in the song and the best part is it does not work (now fixed).
 well it might work better if the app supports getting the position but I have not found any.
 
