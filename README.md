@@ -1,4 +1,5 @@
 A music visulizer based on cavacore and built with Gtk+3
+in limbo till I get a school break.
 ## this app only works with pipewire right now becuase that is what I use and I have no way of testing anything else.
 
 
