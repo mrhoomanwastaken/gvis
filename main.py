@@ -399,6 +399,8 @@ class MyWindow(Gtk.Window):
         available_services = available_services[0]  # The result is a tuple, we want the first element
         # List available services
         mpris_services = [s for s in available_services if s.startswith("org.mpris.MediaPlayer2.")]
+        if 'org.mpris.MediaPlayer2.plasma-browser-integration' in mpris_services:
+            mpris_services = ['org.mpris.MediaPlayer2.plasma-browser-integration']
 
         source = None
 
