@@ -1,4 +1,4 @@
-numpy==2.2.1
+numpy==2.2.2
 pydbus==0.6.0
 PyGObject==3.50.0
 pycairo==1.27.0
