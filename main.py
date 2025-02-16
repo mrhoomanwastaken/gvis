@@ -83,8 +83,6 @@ except ValueError as e:
     sys.exit(1)
 
 gradient = config.getboolean('gvis' ,'gradient')
-if debug:
-    debug_color_equ = (i / ((number_of_bars * 2) - 1))
 
 #get the background color
 background_rgba = config['gvis']['background_col'].split(',')
@@ -401,6 +399,8 @@ class MyWindow(Gtk.Window):
         available_services = available_services[0]  # The result is a tuple, we want the first element
         # List available services
         mpris_services = [s for s in available_services if s.startswith("org.mpris.MediaPlayer2.")]
+        if 'org.mpris.MediaPlayer2.plasma-browser-integration' in mpris_services:
+            mpris_services = ['org.mpris.MediaPlayer2.plasma-browser-integration']
 
         source = None
 
@@ -593,7 +593,7 @@ class MyWindow(Gtk.Window):
             #use the app name to get the pipewire node.name of the music app
             #it only supports firefox and vlc right now becuase there is no pattern or standerd for naming pipewire nodes so they have to be added manually (fun!)
             print(f"detected app: {app}")
-            if app == "Mozilla firefox":
+            if app == "Mozilla firefox" or "Firefox":
                 input_source = "Firefox"
             elif app == "VLC media player":
                 input_source = 'VLC media player (LibVLC 3.0.21)'
