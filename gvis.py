@@ -17,7 +17,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gst , Gio
-from configmaker import create_config
+from src.config.configmaker import create_config
 
 
 if getattr(sys, 'frozen', False):
@@ -27,7 +27,7 @@ else:
 
 
 #get cavacore ready
-cava_lib = ctypes.CDLL(os.path.join(base_path , 'libcavacore.so'))
+cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.so'))
 
 cava_lib.cava_init.argtypes = [
     ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
@@ -171,9 +171,9 @@ class MyWindow(Gtk.Window):
         
         #lets us find where the buttion images are if it is compiled with pyinstaller. 
         if hasattr(sys, '_MEIPASS'):
-            self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'back.png'))
+            self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
         else:
-            self.back_image = Gtk.Image.new_from_file(os.path.join(base_path , 'back.png'))
+            self.back_image = Gtk.Image.new_from_file(os.path.join(base_path , 'src/images/back.png'))
         self.back_button = Gtk.Button(image = self.back_image)
         self.back_button.get_style_context().add_class("transparent-button")
         self.back_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -188,9 +188,9 @@ class MyWindow(Gtk.Window):
         
 
         if hasattr(sys, '_MEIPASS'):
-            self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'skip.png'))
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'src/images/skip.png'))
         else:
-            self.skip_image = Gtk.Image.new_from_file(os.path.join(base_path , 'skip.png'))
+            self.skip_image = Gtk.Image.new_from_file(os.path.join(base_path , 'src/images/skip.png'))
         self.skip_button = Gtk.Button(image = self.skip_image)
         self.skip_button.get_style_context().add_class("transparent-button")
         self.skip_button.set_relief(Gtk.ReliefStyle.NONE)

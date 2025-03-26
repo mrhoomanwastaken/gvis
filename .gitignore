@@ -5,3 +5,6 @@ build/main/
 pydist/
 main.spec
 .vscode/
+src/__pycache__/
+src/config/__pycache__
+/__pycache__
