@@ -19,7 +19,6 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gst , Gio
 
 
-from src.config.configmaker import create_config
 import src.cava.cava_init as cava_init
 from src.config.config_loader import load_config
 
