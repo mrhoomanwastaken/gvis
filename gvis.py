@@ -18,6 +18,7 @@ from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gio
 
 import src.cava.cava_init as cava_init
 from src.config.config_loader import load_config
+from src.cava.cava_init import initialize_plan
 
 
 if getattr(sys, 'frozen', False):
@@ -50,40 +51,19 @@ vis_type = gvis_config['vis_type']
 fill = gvis_config['fill']
 gradient = gvis_config['gradient']
 
-#get the background color
-background_rgba = gvis_config['background_col'].split(',')
-if len(background_rgba) == 4:
-    background_rgba = [float(i) for i in background_rgba]
-    background_col = tuple(background_rgba)
+# Remove background color and gradient parsing logic
+background_col = gvis_config['background_col']
+if gvis_config['gradient']:
+    colors_list = gvis_config['color_gradent']
+    num_colors = len(colors_list)
 else:
-    background_col = (0,0,0,0.5)
- 
-if gradient:
-    colors = gvis_config['color_gradent'].split(',')
-    colors = [float(i) for i in colors]
-    colors_list = []
-    if len(colors) % 4 == 0:
-        num_colors = len(colors) // 4
-        for i in range(num_colors):
-            color = tuple(colors[(i*4):((i+1)*4)])
-            colors_list.append(color)      
-else:
-    #turn color1 into a list
-    color1 = gvis_config['color1'].split(',')
-    if len(color1) < 3:
-        print('color1 needs at least 3 vaules to work. setting color to default (cyan).')
-        color1 = ['0','1','1','1']
-    elif len(color1) > 4:
-        print('more than 4 values found. discarding extra values')
-        color1 = color1[:4]
-    color = []
-    #turn all of the items in color1 into floats and add them to color
-    color.extend(float(i) for i in color1)
-    color = tuple(color)
+    color = gvis_config['color1']
 
-plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
-if plan == -1:
-    print("Error initializing cava")
+# Initialize CAVA plan
+try:
+    plan = initialize_plan(cava_lib, number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
+except RuntimeError as e:
+    print(e)
     exit(1)
 
 

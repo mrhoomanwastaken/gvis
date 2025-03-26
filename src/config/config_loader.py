@@ -61,6 +61,38 @@ def load_config():
             'color_gradent': config.get('gvis', 'color_gradent', fallback=None),
             'color1': config.get('gvis', 'color1', fallback=None),
         }
+
+        # Parse background color
+        background_rgba = gvis_config['background_col'].split(',')
+        if len(background_rgba) == 4:
+            background_rgba = [float(i) for i in background_rgba]
+            gvis_config['background_col'] = tuple(background_rgba)
+        else:
+            gvis_config['background_col'] = (0, 0, 0, 0.5)
+
+        # Parse gradient or fallback to color1
+        if gvis_config['gradient']:
+            colors = gvis_config['color_gradent'].split(',')
+            colors = [float(i) for i in colors]
+            colors_list = []
+            if len(colors) % 4 == 0:
+                num_colors = len(colors) // 4
+                for i in range(num_colors):
+                    color = tuple(colors[(i * 4):((i + 1) * 4)])
+                    colors_list.append(color)
+                gvis_config['color_gradent'] = colors_list
+            else:
+                raise ValueError("Invalid gradient configuration.")
+        else:
+            color1 = gvis_config['color1'].split(',')
+            if len(color1) < 3:
+                print('color1 needs at least 3 values to work. Setting color to default (cyan).')
+                color1 = ['0', '1', '1', '1']
+            elif len(color1) > 4:
+                print('More than 4 values found. Discarding extra values.')
+                color1 = color1[:4]
+            gvis_config['color1'] = tuple(float(i) for i in color1)
+
     except KeyError as e:
         print(f"Missing key in config file: {e}")
         sys.exit(1)

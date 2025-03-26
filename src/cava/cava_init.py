@@ -48,3 +48,28 @@ def initialize_cava(base_path):
     ]
 
     cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+
+def initialize_plan(cava_lib, number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off):
+    """
+    Initializes the CAVA plan using the provided configuration parameters.
+
+    Args:
+        cava_lib: The loaded CAVA library object.
+        number_of_bars (int): Number of bars for visualization.
+        rate (int): Audio sample rate.
+        channels (int): Number of audio channels.
+        autosens (int): Autosensitivity flag.
+        noise_reduction (float): Noise reduction level.
+        low_cut_off (int): Low frequency cutoff.
+        high_cut_off (int): High frequency cutoff.
+
+    Returns:
+        plan: The initialized CAVA plan.
+
+    Raises:
+        RuntimeError: If the CAVA initialization fails.
+    """
+    plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
+    if plan == -1:
+        raise RuntimeError("Error initializing cava")
+    return plan
