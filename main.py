@@ -606,7 +606,7 @@ class MyWindow(Gtk.Window):
         #open pw-cat so we can stream audio data from the app.
         #or if it input_source is auto it will just stream audio from the microphone.
         process = subprocess.Popen(
-            ["pw-cat", "-r", "--target", str(input_source), "--format" , "f32" , "-"],
+            ["pw-cat", "-ra", "--target", str(input_source), "--format" , "f32" , "-"],
             stdout=subprocess.PIPE,
             bufsize=buffer_size * channels,
         )
