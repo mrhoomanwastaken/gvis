@@ -4,3 +4,4 @@ venv/
 build/main/
 pydist/
 main.spec
+.vscode/
