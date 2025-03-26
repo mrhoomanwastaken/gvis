@@ -17,7 +17,11 @@ gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
 from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gst , Gio
+
+
 from src.config.configmaker import create_config
+import src.cava.cava_init as cava_init
+from src.config.config_loader import load_config
 
 
 if getattr(sys, 'frozen', False):
@@ -25,67 +29,33 @@ if getattr(sys, 'frozen', False):
 else:
     base_path = os.path.dirname(os.path.abspath(__file__))
 
-
-#get cavacore ready
-cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.so'))
-
-cava_lib.cava_init.argtypes = [
-    ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
-    ctypes.c_double, ctypes.c_int, ctypes.c_int
-]
-cava_lib.cava_init.restype = ctypes.POINTER(ctypes.c_void_p)
-
-cava_lib.cava_execute.argtypes = [
-    ctypes.POINTER(ctypes.c_double), ctypes.c_int, 
-    ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_void_p)
-]
-
-cava_lib.cava_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
-
+# Initialize cavacore
+cava_init.initialize_cava(base_path)
+cava_lib = cava_init.cava_lib
 
 config = configparser.ConfigParser()
 
-if os.path.exists('config.ini'):
-    config.read('config.ini')
-else:
-    print('Cannot find main config file. Falling back to example config file.')
-    if os.path.exists('config_example.ini'):
-        config.read('config_example.ini')
-    else:
-        print("Could not find the config example file. Creating one now.")
-        create_config()
-        config.read('config_example.ini')
-
-debug = config['General'].getboolean('debug', fallback=False)
-if debug:
-    print("Debug mode")
 
 
+# Load configuration
+gvis_config = load_config()
 
-# Configure cavacore
-try:
-    number_of_bars = int(config['gvis']['bars'])
-    rate = int(config['gvis']['rate'])
-    channels = int(config['gvis']['channels'])
-    autosens = int(config['gvis']['autosens'])
-    noise_reduction = float(config['gvis']['noise_reduction'])
-    low_cut_off = int(config['gvis']['low_cut_off'])
-    high_cut_off = int(config['gvis']['high_cut_off'])
-    buffer_size = int(config['gvis']['buffer_size'])
-    input_source = str(config['gvis']['input_source'])
-    vis_type = str(config['gvis']['vis_type'])
-    fill = config.getboolean('gvis' ,'fill')
-except KeyError as e:
-    print(f"Missing key in config file: {e}")
-    sys.exit(1)
-except ValueError as e:
-    print(f"Invalid value in config file: {e}")
-    sys.exit(1)
-
-gradient = config.getboolean('gvis' ,'gradient')
+# Extract configuration values
+number_of_bars = gvis_config['number_of_bars']
+rate = gvis_config['rate']
+channels = gvis_config['channels']
+autosens = gvis_config['autosens']
+noise_reduction = gvis_config['noise_reduction']
+low_cut_off = gvis_config['low_cut_off']
+high_cut_off = gvis_config['high_cut_off']
+buffer_size = gvis_config['buffer_size']
+input_source = gvis_config['input_source']
+vis_type = gvis_config['vis_type']
+fill = gvis_config['fill']
+gradient = gvis_config['gradient']
 
 #get the background color
-background_rgba = config['gvis']['background_col'].split(',')
+background_rgba = gvis_config['background_col'].split(',')
 if len(background_rgba) == 4:
     background_rgba = [float(i) for i in background_rgba]
     background_col = tuple(background_rgba)
@@ -93,7 +63,7 @@ else:
     background_col = (0,0,0,0.5)
  
 if gradient:
-    colors = config['gvis']['color_gradent'].split(',')
+    colors = gvis_config['color_gradent'].split(',')
     colors = [float(i) for i in colors]
     colors_list = []
     if len(colors) % 4 == 0:
@@ -103,7 +73,7 @@ if gradient:
             colors_list.append(color)      
 else:
     #turn color1 into a list
-    color1 = config['gvis']['color1'].split(',')
+    color1 = gvis_config['color1'].split(',')
     if len(color1) < 3:
         print('color1 needs at least 3 vaules to work. setting color to default (cyan).')
         color1 = ['0','1','1','1']
@@ -114,7 +84,6 @@ else:
     #turn all of the items in color1 into floats and add them to color
     color.extend(float(i) for i in color1)
     color = tuple(color)
-    
 
 plan = cava_lib.cava_init(number_of_bars, rate, channels, autosens, noise_reduction, low_cut_off, high_cut_off)
 if plan == -1:
@@ -302,7 +271,7 @@ class MyWindow(Gtk.Window):
             #the only issue is that resizing the window would mess it up.
             screen_height = widget.get_allocated_height()
             bar_width = widget.get_allocated_width() / (number_of_bars * 2)
-            global vis_type
+            global vis_type , color
 
             if not gradient:
                 cr.set_source_rgba(*color)
