@@ -90,7 +90,7 @@ if len(background_rgba) == 4:
     background_rgba = [float(i) for i in background_rgba]
     background_col = tuple(background_rgba)
 else:
-    background_col(0,0,0,0.5)
+    background_col = (0,0,0,0.5)
  
 if gradient:
     colors = config['gvis']['color_gradent'].split(',')
