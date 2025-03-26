@@ -19,6 +19,9 @@ from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gio
 import src.cava.cava_init as cava_init
 from src.config.config_loader import load_config
 from src.cava.cava_init import initialize_plan
+from src.ui_controls import on_pause_button_clicked, on_back_button_clicked, on_skip_button_clicked
+from src.visualizers.bars import BarsVisualizer
+from src.visualizers.lines import LinesVisualizer
 
 
 if getattr(sys, 'frozen', False):
@@ -169,9 +172,9 @@ class MyWindow(Gtk.Window):
         self.artist_name.get_style_context().add_class("white-label")
         self.info_box.pack_start(self.artist_name ,True, True, 0)  # Add the song artist label to the box
 
-        self.back_button.connect("clicked", self.on_back_button_clicked)
-        self.skip_button.connect("clicked", self.on_skip_button_clicked)
-        self.pause_buttion.connect("clicked", self.on_pause_button_clicked)
+        self.back_button.connect("clicked", lambda button: on_back_button_clicked(self.source, button, self.progress_bar))
+        self.skip_button.connect("clicked", lambda button: on_skip_button_clicked(self.source, button))
+        self.pause_buttion.connect("clicked", lambda button: on_pause_button_clicked(self.source, button))
 
         self.overlay.add_overlay(self.song_box)
         
@@ -180,7 +183,31 @@ class MyWindow(Gtk.Window):
         # Start CAVA processing in a separate thread so it can begin processing audio
         threading.Thread(target=self.run_cava, daemon=True).start()
 
-        self.drawing_area.connect("draw", self.on_draw)
+        # Initialize the appropriate visualizer based on the configuration
+        if vis_type == 'bars':
+            self.visualizer = BarsVisualizer(
+                background_col=background_col,
+                number_of_bars=number_of_bars,
+                fill=fill,
+                gradient=gradient,
+                colors_list=colors_list if gradient else None,
+                num_colors=num_colors if gradient else None,
+                color=color if not gradient else None
+            )
+        elif vis_type == 'lines':
+            self.visualizer = LinesVisualizer(
+                background_col=background_col,
+                number_of_bars=number_of_bars,
+                fill=fill,
+                gradient=gradient,
+                colors_list=colors_list if gradient else None,
+                num_colors=num_colors if gradient else None,
+                color=color if not gradient else None
+            )
+        else:
+            raise ValueError(f"Unsupported visualization type: {vis_type}")
+
+        self.drawing_area.connect("draw", self.visualizer.on_draw)
         if self.source:
             self.source.connect("g-properties-changed", self.on_properties_changed)
             self.new_song = True
@@ -202,123 +229,10 @@ class MyWindow(Gtk.Window):
         self.height = y1 - y0
         self.width = x1 - x0
 
-    def on_pause_button_clicked(self, button):
-        if self.source:
-            self.source.call_sync(
-                "org.mpris.MediaPlayer2.Player.PlayPause",  # D-Bus method to call
-                None,                                      # No arguments for PlayPause
-                Gio.DBusCallFlags.NONE,                    # No special flags
-                -1,                                        # No timeout
-                None                                       # No cancellable
-            )
-
-    def on_back_button_clicked(self, button):
-        """Skip to the previous track."""
-        if self.source:
-            self.source.call_sync(
-                "org.mpris.MediaPlayer2.Player.Previous",  # D-Bus method to call
-                None,                                      # No arguments for PlayPause
-                Gio.DBusCallFlags.NONE,                    # No special flags
-                -1,                                        # No timeout
-                None                                       # No cancellable
-            ) # Call the Previous method from the MPRIS interface
-            self.progress_bar.set_fraction(0)
-
-
-    def on_skip_button_clicked(self, button):
-        """Skip to the next track."""
-        if self.source:
-            self.source.call_sync(
-                "org.mpris.MediaPlayer2.Player.Next",  # D-Bus method to call
-                None,                                      # No arguments for PlayPause
-                Gio.DBusCallFlags.NONE,                    # No special flags
-                -1,                                        # No timeout
-                None                                       # No cancellable
-            ) # Call the Previous method from the MPRIS interface
-
     def on_draw(self, widget, cr):
         # Set the transparent background
         cr.set_source_rgba(*background_col)
         cr.paint()
-
-        # Draw the visualization
-        if hasattr(self, 'sample'):
-            #all of this stuff may be able to be calculated in advance.
-            #the only issue is that resizing the window would mess it up.
-            screen_height = widget.get_allocated_height()
-            bar_width = widget.get_allocated_width() / (number_of_bars * 2)
-            global vis_type , color
-
-            if not gradient:
-                cr.set_source_rgba(*color)
-            else:
-                #gradient calculations
-                pattern = cairo.LinearGradient(0, 0, widget.get_allocated_width(), screen_height)
-                for i, color in enumerate(colors_list):
-                    stop_position = i / (num_colors - 1)  # Normalize between 0 and 1
-                    pattern.add_color_stop_rgba(stop_position, *color)
-                cr.set_source(pattern)
-    
-            if vis_type == 'bars':
-                    for i, value in enumerate(self.sample):
-                        #this whole block of code assumes that 2 channels are being used.
-                        #granted no one uses mono audio so it does not matter that much.
-                        if i < number_of_bars:
-                            i = (number_of_bars - i)
-                            flip = -1
-                        else:
-                            flip = 1
-                        if i == number_of_bars:
-                            #this attaches the two channels together.
-                            #it does use a diagnal line but its impossible to see above 10 bars.
-                            #we also need it or the filler will go crazy
-                            cr.move_to(i*bar_width , screen_height*(1-self.sample[0]))
-                        # Calculate height based on the sample value
-                        height = value * screen_height
-                        #draw just the tops and one side of the bars.
-                        #cuts the amount of lines in half making it FAST
-                        cr.line_to(i*bar_width,screen_height*(1-value))
-                        cr.line_to((i+flip)*bar_width,screen_height*(1-value))
-
-                        if i == 1 or i == number_of_bars * 2 - 1:
-                            #draws lines on the sides and bottom.
-                            #if we did not do this it would fill in a straight line twords the middle.
-                            cr.line_to((i+flip)*bar_width , screen_height)
-                            cr.line_to(widget.get_allocated_width()/2 , screen_height)
-                    
-                    #stroke is mostly for debugging but you can use it if you want
-                    if fill:
-                        cr.fill()
-                    else:
-                        cr.stroke()
-                
-            elif vis_type == 'lines':
-                    cr.set_line_width(2)
-
-                    for i, value in enumerate(self.sample):
-                        #this is almost the same as the bar function but it draws only 1 line per bar.
-                        if i < number_of_bars:
-                            i = (number_of_bars - i)
-                            flip = -1
-                        else:
-                            flip = 1
-                        if i == number_of_bars:
-                            cr.move_to(i*bar_width , screen_height*(1-self.sample[0]))
-                        #Calculate height based on the sample value
-                        height = value * screen_height
-                        cr.line_to((i+flip)*bar_width , screen_height*(1-value))
-                        if i == 1 or i == number_of_bars * 2 - 1:
-                            cr.line_to((i+flip)*bar_width , screen_height)
-                            cr.line_to(widget.get_allocated_width()/2 , screen_height)
-
-                    if fill:
-                        cr.fill()
-                    else:
-                        cr.stroke()
-            else:
-                #fallback if there is something weird in the config.
-                vis_type = 'bars'
-                self.queue_draw()
 
     def get_mpris_service(self):
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -580,7 +494,7 @@ class MyWindow(Gtk.Window):
 
     def update_visualization(self, sample):
         # Update the visualization data and redraw
-        self.sample = sample
+        self.visualizer.sample = sample
         GLib.idle_add(self.drawing_area.queue_draw)  # Request to redraw the area
 
 
