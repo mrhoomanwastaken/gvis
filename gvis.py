@@ -1,14 +1,11 @@
 import os
 import select
-import struct
 import subprocess
-import tempfile
 import threading
 import gi
 import configparser
 import urllib.request
 import cairo
-import time
 import selectors
 import ctypes
 import sys
@@ -16,7 +13,7 @@ import numpy as np
 gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
-from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gst , Gio
+from gi.repository import Gtk, GdkPixbuf , Gdk , GLib , Gio
 
 
 import src.cava.cava_init as cava_init
