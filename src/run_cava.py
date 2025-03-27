@@ -19,7 +19,7 @@ def run_cava(input_source, buffer_size, channels, number_of_bars, cava_lib, plan
 
         # Use the app name to get the PipeWire node.name of the music app
         print(f"detected app: {app}")
-        if app == "Mozilla firefox" or "Firefox":
+        if app == "Mozilla firefox" or app == "Firefox":
             input_source = "Firefox"
         elif app == "VLC media player":
             input_source = 'VLC media player (LibVLC 3.0.21)'
