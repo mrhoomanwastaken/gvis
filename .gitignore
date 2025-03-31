@@ -6,3 +6,4 @@ pydist/
 main.spec
 .vscode/
 __pycache__/
+.env

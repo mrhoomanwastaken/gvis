@@ -10,26 +10,39 @@ class BarsVisualizer:
         self.num_colors = num_colors
         self.color = color
         self.sample = None
+        self.bar_width = None
+        self.gradient_pattern = None
+        self.widget_width = None
+        self.widget_height = None
+
+    def initialize(self, widget):
+        """Initialize calculations that only need to be done once."""
+        self.widget_width = widget.get_allocated_width()
+        self.widget_height = widget.get_allocated_height()
+        self.bar_width = self.widget_width / (self.number_of_bars * 2)
+
+        if self.gradient:
+            self.gradient_pattern = cairo.LinearGradient(0, 0, self.widget_width, self.widget_height)
+            for i, color in enumerate(self.colors_list):
+                stop_position = i / (self.num_colors - 1)  # Normalize between 0 and 1
+                self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
 
     def on_draw(self, widget, cr):
         # Set the transparent background
         cr.set_source_rgba(*self.background_col)
         cr.paint()
 
+        # Reinitialize if widget dimensions have changed
+        if (self.widget_width != widget.get_allocated_width() or 
+            self.widget_height != widget.get_allocated_height()):
+            self.initialize(widget)
+
         # Draw the bars visualization
         if self.sample is not None:
-            screen_height = widget.get_allocated_height()
-            bar_width = widget.get_allocated_width() / (self.number_of_bars * 2)
-
             if not self.gradient:
                 cr.set_source_rgba(*self.color)
             else:
-                # Gradient calculations
-                pattern = cairo.LinearGradient(0, 0, widget.get_allocated_width(), screen_height)
-                for i, color in enumerate(self.colors_list):
-                    stop_position = i / (self.num_colors - 1)  # Normalize between 0 and 1
-                    pattern.add_color_stop_rgba(stop_position, *color)
-                cr.set_source(pattern)
+                cr.set_source(self.gradient_pattern)
 
             for i, value in enumerate(self.sample):
                 if i < self.number_of_bars:
@@ -38,14 +51,14 @@ class BarsVisualizer:
                 else:
                     flip = 1
                 if i == self.number_of_bars:
-                    cr.move_to(i * bar_width, screen_height * (1 - self.sample[0]))
-                height = value * screen_height
-                cr.line_to(i * bar_width, screen_height * (1 - value))
-                cr.line_to((i + flip) * bar_width, screen_height * (1 - value))
+                    cr.move_to(i * self.bar_width, self.widget_height * (1 - self.sample[0]))
+                height = value * self.widget_height
+                cr.line_to(i * self.bar_width, self.widget_height * (1 - value))
+                cr.line_to((i + flip) * self.bar_width, self.widget_height * (1 - value))
 
                 if i == 1 or i == self.number_of_bars * 2 - 1:
-                    cr.line_to((i + flip) * bar_width, screen_height)
-                    cr.line_to(widget.get_allocated_width() / 2, screen_height)
+                    cr.line_to((i + flip) * self.bar_width, self.widget_height)
+                    cr.line_to(widget.get_allocated_width() / 2, self.widget_height)
 
             if self.fill:
                 cr.fill()

@@ -60,6 +60,7 @@ def load_config():
             'background_col': config['gvis']['background_col'],
             'color_gradent': config.get('gvis', 'color_gradent', fallback=None),
             'color1': config.get('gvis', 'color1', fallback=None),
+            'scrobble': config.getboolean('gvis', 'scrobble', fallback=False)
         }
 
         # Parse background color
