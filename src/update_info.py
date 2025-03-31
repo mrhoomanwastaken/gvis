@@ -88,12 +88,12 @@ def update_info(self , scrobble_enabled , network):
     else:
         print("No album image available.")
 
-    if scrobble_enabled:
-        if self.new_song:
-            try:
-                scrobble_track(network,artist_name,song_name , album_name , metadata.get('mpris:length')/1000000)
-            except Exception as e:
-                print(f"Failed to scrobble: {e}")
+    if scrobble_enabled and self.new_song:
+        try:
+            scrobble_track(network,artist_name,song_name , album_name , metadata.get('mpris:length')/1000000)
+        except Exception as e:
+            print(f"Failed to scrobble: {e}")
+
 
     self.new_song = False
 
