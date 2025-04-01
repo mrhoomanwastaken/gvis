@@ -3,6 +3,6 @@ numpy==2.2.3
 pycairo==1.27.0
 pydbus==0.6.0
 PyGObject==3.52.3
-pylast==4.0.0
+pylast==5.5.0
 python-dotenv==1.1.0
 setuptools==78.1.0
