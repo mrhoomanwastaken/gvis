@@ -49,6 +49,7 @@ input_source = gvis_config['input_source']
 vis_type = gvis_config['vis_type']
 fill = gvis_config['fill']
 gradient = gvis_config['gradient']
+scrobble_enabled = gvis_config['scrobble']
 
 # Remove background color and gradient parsing logic
 background_col = gvis_config['background_col']
@@ -66,6 +67,20 @@ except RuntimeError as e:
     exit(1)
 
 
+
+
+if scrobble_enabled:
+    try:
+        from src.scrobbler import initialize_lastfm
+        network = initialize_lastfm()
+        print("Last.fm scrobbling is enabled.")
+    except ImportError:
+        print("Last.fm scrobbling is enabled but the required library is not installed.")
+        network = None
+        scrobble_enabled = False
+else:
+    network = None
+    scrobble_enabled = False
 
 class MyWindow(Gtk.Window):
     def __init__(self):
@@ -235,7 +250,8 @@ class MyWindow(Gtk.Window):
         self.update_info()
 
     def update_info(self):
-        update_info(self)
+        global scrobble_enabled, network
+        update_info(self , scrobble_enabled, network)
 
     def update_progress(self):
         return update_progress(self)

@@ -1,7 +1,8 @@
 import urllib.request
 from gi.repository import GdkPixbuf, GLib, Gio
+from src.scrobbler import scrobble_track
 
-def update_info(self):
+def update_info(self , scrobble_enabled , network):
     if not self.source:
         return
 
@@ -86,6 +87,13 @@ def update_info(self):
             print(f"Failed to load album image: {e}")
     else:
         print("No album image available.")
+
+    if scrobble_enabled and self.new_song:
+        try:
+            scrobble_track(network,artist_name,song_name , album_name , metadata.get('mpris:length')/1000000)
+        except Exception as e:
+            print(f"Failed to scrobble: {e}")
+
 
     self.new_song = False
 

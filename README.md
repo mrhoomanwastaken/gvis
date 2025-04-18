@@ -43,6 +43,16 @@ A progress bar shows your position in the song.
 It used to be unreliable, but now it's fixed.  
 Note: It works better if the app supports retrieving the current position.
 
+## Scrobbling with last.fm!
+If you have a last.fm account, you can hook it up to gvis and it will scrobble automatically.
+
+# scrobble setup
+Make sure `scrobble` is set to `True` in your config.
+Run gvis in the terminal.
+Open the link it provides and follow the directions on last.fm.
+You're done!
+You can now run gvis normally, and it will continue to work.
+
 # Supported Apps
 1. Firefox  
 2. VLC (but only when it feels like it)  
