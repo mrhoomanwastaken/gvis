@@ -40,9 +40,13 @@ def initialize_lastfm():
 
 def scrobble_track(network, artist, title , album , duration):
     try:
+        #last fm does not like scrobbling multiple artists and will log the artest as all of them if we just pass in artist[0]
+        # so we need to split the artist string and take the first one
+        # This formatting might be exclusive to youtube music
+        fm_artist = artist[0].split(" & ")[0].split(", ")[0]
         timestamp = int(time.time())  # Current timestamp in seconds
-        network.scrobble(artist=artist[0], title=title , timestamp=timestamp , album=album)
-        network.update_now_playing(artist=artist[0], title=title, duration=duration)
-        print(f"Scrobbled: {artist[0]} - {title} - {album}")
+        network.scrobble(artist=fm_artist, title=title , timestamp=timestamp , album=album)
+        network.update_now_playing(artist=fm_artist, title=title, duration=duration)
+        print(f"Scrobbled: {fm_artist} - {title} - {album}")
     except pylast.WSError as e:
         print(f"Failed to scrobble: {e}")
