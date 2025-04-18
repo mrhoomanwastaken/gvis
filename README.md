@@ -62,3 +62,6 @@ You can now run gvis normally, and it will continue to work.
 The first time you run it, make sure to use a terminal where you can input commands.  
 If it works without errors, you can run it using this command (or by clicking it):  
 `nohup ./gvis.bin & disown && exit`
+
+# Note
+busy work like docstrings are done by copilot. I do check what it outputs but I might miss some things. If you see something wrong with the docstrings or comments please tell me.

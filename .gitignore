@@ -1,6 +1,7 @@
 nohup.out
 config.ini
 venv/
+.venv/
 build/main/
 pydist/
 main.spec
