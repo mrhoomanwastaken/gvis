@@ -92,8 +92,6 @@ class MyWindow(Gtk.Window):
         self.set_visual(self.get_screen().get_rgba_visual())
         self.set_app_paintable(True)
 
-        # Connect to draw signal to manually draw the window's background
-        self.connect("draw", self.on_draw)
        
         # Create and load CSS to make only specific elements transparent
         css_provider = Gtk.CssProvider()
@@ -240,10 +238,6 @@ class MyWindow(Gtk.Window):
         self.height = y1 - y0
         self.width = x1 - x0
 
-    def on_draw(self, widget, cr):
-        # Set the transparent background
-        cr.set_source_rgba(*background_col)
-        cr.paint()
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
         print(changed_properties)
