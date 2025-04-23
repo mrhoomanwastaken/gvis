@@ -1,7 +1,7 @@
 import cairo
 
 class BarsVisualizer:
-    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, color=None):
+    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None,gradient_points=None, color=None):
         self.background_col = background_col
         self.number_of_bars = number_of_bars
         self.fill = fill
@@ -9,6 +9,7 @@ class BarsVisualizer:
         self.colors_list = colors_list
         self.num_colors = num_colors
         self.color = color
+        self.gradient_points = gradient_points
         self.sample = None
         self.bar_width = None
         self.gradient_pattern = None
@@ -22,7 +23,12 @@ class BarsVisualizer:
         self.bar_width = self.widget_width / (self.number_of_bars * 2)
 
         if self.gradient:
-            self.gradient_pattern = cairo.LinearGradient(0, 0, self.widget_width, self.widget_height)
+            self.gradient_pattern = cairo.LinearGradient(
+                self.widget_height * int(self.gradient_points[0]),
+                self.widget_height * int(self.gradient_points[1]),
+                self.widget_height * int(self.gradient_points[2]),
+                self.widget_height * int(self.gradient_points[3])
+            )
             for i, color in enumerate(self.colors_list):
                 stop_position = i / (self.num_colors - 1)  # Normalize between 0 and 1
                 self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
