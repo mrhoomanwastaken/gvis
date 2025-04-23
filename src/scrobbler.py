@@ -40,7 +40,7 @@ def initialize_lastfm():
 
 def scrobble_track(network, artist, title , album , duration):
     try:
-        #last fm does not like scrobbling multiple artists and will log the artest as all of them if we just pass in artist[0]
+        #last fm does not like scrobbling multiple artists and will log the artist as all of them if we just pass in artist[0]
         # so we need to split the artist string and take the first one
         # This formatting might be exclusive to youtube music
         fm_artist = artist[0].split(" & ")[0].split(", ")[0]
