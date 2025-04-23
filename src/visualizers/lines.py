@@ -59,7 +59,6 @@ class LinesVisualizer:
                     flip = 1
                 if i == self.number_of_bars:
                     cr.move_to(i * self.bar_width, self.widget_height * (1 - self.sample[0]))
-                height = value * self.widget_height
                 cr.line_to((i + flip) * self.bar_width, self.widget_height * (1 - value))
                 if i == 1 or i == self.number_of_bars * 2 - 1:
                     cr.line_to((i + flip) * self.bar_width, self.widget_height)
