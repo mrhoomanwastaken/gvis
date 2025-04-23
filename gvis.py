@@ -51,11 +51,12 @@ fill = gvis_config['fill']
 gradient = gvis_config['gradient']
 scrobble_enabled = gvis_config['scrobble']
 
-# Remove background color and gradient parsing logic
+# Parse background color
 background_col = gvis_config['background_col']
 if gvis_config['gradient']:
     colors_list = gvis_config['color_gradent']
     num_colors = len(colors_list)
+    gradient_points = gvis_config['gradient_points']
 else:
     color = gvis_config['color1']
 
@@ -92,8 +93,6 @@ class MyWindow(Gtk.Window):
         self.set_visual(self.get_screen().get_rgba_visual())
         self.set_app_paintable(True)
 
-        # Connect to draw signal to manually draw the window's background
-        self.connect("draw", self.on_draw)
        
         # Create and load CSS to make only specific elements transparent
         css_provider = Gtk.CssProvider()
@@ -203,6 +202,7 @@ class MyWindow(Gtk.Window):
                 gradient=gradient,
                 colors_list=colors_list if gradient else None,
                 num_colors=num_colors if gradient else None,
+                gradient_points=gradient_points if gradient else None,
                 color=color if not gradient else None
             )
         elif vis_type == 'lines':
@@ -213,6 +213,7 @@ class MyWindow(Gtk.Window):
                 gradient=gradient,
                 colors_list=colors_list if gradient else None,
                 num_colors=num_colors if gradient else None,
+                gradient_points=gradient_points if gradient else None,
                 color=color if not gradient else None
             )
         else:
@@ -240,10 +241,6 @@ class MyWindow(Gtk.Window):
         self.height = y1 - y0
         self.width = x1 - x0
 
-    def on_draw(self, widget, cr):
-        # Set the transparent background
-        cr.set_source_rgba(*background_col)
-        cr.paint()
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
         print(changed_properties)

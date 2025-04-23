@@ -1,13 +1,14 @@
 import cairo
 
 class LinesVisualizer:
-    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, color=None):
+    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, gradient_points=None, color=None):
         self.background_col = background_col
         self.number_of_bars = number_of_bars
         self.fill = fill
         self.gradient = gradient
         self.colors_list = colors_list
         self.num_colors = num_colors
+        self.gradient_points = gradient_points
         self.color = color
         self.sample = None
         self.bar_width = None
@@ -22,7 +23,27 @@ class LinesVisualizer:
         self.bar_width = self.widget_width / (self.number_of_bars * 2)
 
         if self.gradient:
-            self.gradient_pattern = cairo.LinearGradient(0, 0, self.widget_width, self.widget_height)
+            if len(self.gradient_points) != 4:
+                print("gradient_points must contain exactly 4 elements. Falling back to default values.")
+                self.gradient_points = [0, 0, 1, 1]  # Fallback to default values
+            try:
+                gp0 = float(self.gradient_points[0])
+                gp1 = float(self.gradient_points[1])
+                gp2 = float(self.gradient_points[2])
+                gp3 = float(self.gradient_points[3])
+            except (ValueError, TypeError):
+                print("All elements in gradient_points must be numeric values. Falling back to default values.")
+                self.gradient_points = [0, 0, 1, 1]  # Fallback to default values
+                gp0 = float(self.gradient_points[0])
+                gp1 = float(self.gradient_points[1])
+                gp2 = float(self.gradient_points[2])
+                gp3 = float(self.gradient_points[3])
+            self.gradient_pattern = cairo.LinearGradient(
+                self.widget_height * gp0,
+                self.widget_height * gp1,
+                self.widget_height * gp2,
+                self.widget_height * gp3
+            )
             for i, color in enumerate(self.colors_list):
                 stop_position = i / (self.num_colors - 1)  # Normalize between 0 and 1
                 self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
@@ -53,7 +74,6 @@ class LinesVisualizer:
                     flip = 1
                 if i == self.number_of_bars:
                     cr.move_to(i * self.bar_width, self.widget_height * (1 - self.sample[0]))
-                height = value * self.widget_height
                 cr.line_to((i + flip) * self.bar_width, self.widget_height * (1 - value))
                 if i == 1 or i == self.number_of_bars * 2 - 1:
                     cr.line_to((i + flip) * self.bar_width, self.widget_height)
