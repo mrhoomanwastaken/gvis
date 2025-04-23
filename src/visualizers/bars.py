@@ -23,11 +23,26 @@ class BarsVisualizer:
         self.bar_width = self.widget_width / (self.number_of_bars * 2)
 
         if self.gradient:
+            if len(self.gradient_points) != 4:
+                print("gradient_points must contain exactly 4 elements. Falling back to default values.")
+                self.gradient_points = [0, 0, 1, 1]  # Fallback to default values
+            try:
+                gp0 = float(self.gradient_points[0])
+                gp1 = float(self.gradient_points[1])
+                gp2 = float(self.gradient_points[2])
+                gp3 = float(self.gradient_points[3])
+            except (ValueError, TypeError):
+                print("All elements in gradient_points must be numeric values. Falling back to default values.")
+                self.gradient_points = [0, 0, 1, 1]  # Fallback to default values
+                gp0 = float(self.gradient_points[0])
+                gp1 = float(self.gradient_points[1])
+                gp2 = float(self.gradient_points[2])
+                gp3 = float(self.gradient_points[3])
             self.gradient_pattern = cairo.LinearGradient(
-                self.widget_height * int(self.gradient_points[0]),
-                self.widget_height * int(self.gradient_points[1]),
-                self.widget_height * int(self.gradient_points[2]),
-                self.widget_height * int(self.gradient_points[3])
+                self.widget_height * gp0,
+                self.widget_height * gp1,
+                self.widget_height * gp2,
+                self.widget_height * gp3
             )
             for i, color in enumerate(self.colors_list):
                 stop_position = i / (self.num_colors - 1)  # Normalize between 0 and 1
