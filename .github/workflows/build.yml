@@ -21,7 +21,8 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libcairo2 libcairo2-dev pkg-config
+        sudo apt-get install -y libcairo2 libcairo2-dev pkg-config \
+          libgirepository1.0-dev gir1.2-gtk-3.0 python3-gi python3-gi-cairo
 
     - name: Install Python dependencies
       run: |
