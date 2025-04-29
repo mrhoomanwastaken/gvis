@@ -34,6 +34,8 @@ def load_config():
             'input_source': str(config['gvis']['input_source']),
             'vis_type': str(config['gvis']['vis_type']),
             'fill': config.getboolean('gvis', 'fill'),
+            'RGBA' : config.getboolean('gvis' , 'RGBA'),
+            'RGB255' : config.getboolean('gvis' , 'RGB255'),
             'gradient': config.getboolean('gvis', 'gradient'),
             'background_col': config['gvis']['background_col'],
             'color_gradent': config.get('gvis', 'color_gradent', fallback=None),
@@ -42,27 +44,45 @@ def load_config():
             'scrobble': config.getboolean('gvis', 'scrobble', fallback=False)
         }
 
+
         # Parse background color
         background_rgba = gvis_config['background_col'].split(',')
+        background_rgba = [float(i) for i in background_rgba]
+        # Normalize the RGB value to 1
+        if gvis_config['RGB255']:
+            background_rgba = [i/255 for i in background_rgba]
+
+        if not gvis_config['RGBA']:
+            background_rgba.append(1)
+        
         if len(background_rgba) == 4:
-            background_rgba = [float(i) for i in background_rgba]
             gvis_config['background_col'] = tuple(background_rgba)
         else:
-            gvis_config['background_col'] = (0, 0, 0, 0.5)
+            print('invalid background color. falling back to default')
+            gvis_config["background_col"] = (0,0,0,0.5)
+
 
         # Parse gradient or fallback to color1
         if gvis_config['gradient']:
             colors = gvis_config['color_gradent'].split(',')
             colors = [float(i) for i in colors]
+            if gvis_config['RGB255']:
+                colors = [1/255 for i in colors]
             colors_list = []
-            if len(colors) % 4 == 0:
+            if gvis_config['RGBA']:
                 num_colors = len(colors) // 4
                 for i in range(num_colors):
                     color = tuple(colors[(i * 4):((i + 1) * 4)])
                     colors_list.append(color)
                 gvis_config['color_gradent'] = colors_list
             else:
-                raise ValueError("Invalid gradient configuration.")
+                num_colors = len(colors) // 3
+                for i in range(num_colors):
+                    color = colors[(i * 3):(( i + 1) * 3)]
+                    color.append(1)
+                    color = tuple(color)
+                    colors_list.append(color)
+                gvis_config['color_gradent'] = colors_list
         else:
             color1 = gvis_config['color1'].split(',')
             if len(color1) < 3:
