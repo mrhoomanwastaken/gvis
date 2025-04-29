@@ -22,7 +22,8 @@ def create_config():
                           'gradient' : True , 
                           'color_gradient' : '1,0,0,1,0,1,0,1,0,0,1,1', 
                           'gradient_points' : '1,1,1,1',
-                          'vis_type' : 'bars' , 
+                          'vis_type' : 'bars' ,
+                          'flip_vector' : '1 , -1', 
                           'fill' : True , 
                           'scrobble' : False}
     # Write the configuration to a file
