@@ -1,0 +1,47 @@
+name: Build and Compile
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcairo2 libcairo2-dev pkg-config \
+          libgirepository1.0-dev gir1.2-gtk-3.0 python3-gi python3-gi-cairo \
+          gobject-introspection
+        export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH
+
+    - name: Verify girepository installation
+      run: |
+        pkg-config --modversion girepository-2.0
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install nuitka
+        pip install -r requirements.txt
+
+    - name: Create .env file from GitHub Secrets
+      run: |
+        echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
+
+    - name: Compile with Nuitka
+      run: |
+        nuitka --onefile --output-dir=nudist --include-data-files='./src/cava/libcavacore.so=src/cava/libcavacore.so' \
+        --include-data-files='./.env=.env' --include-data-dir="./src/images=src/images" --include-package="gi" \
+        --debug --show-progress --clang gvis.py

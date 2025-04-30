@@ -1,0 +1,1 @@
+nuitka --onefile --output-dir=nudist --include-data-files='./src/cava/libcavacore.so=src/cava/libcavacore.so' --include-data-files='./.env=.env' --include-data-dir="./src/images=src/images" --include-package="gi" --debug --show-progress --clang gvis.py
