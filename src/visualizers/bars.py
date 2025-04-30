@@ -67,7 +67,7 @@ class BarsVisualizer:
                 cr.set_source(self.gradient_pattern)
 
             for i, value in enumerate(self.sample):
-                #im going to try to figure out what this does and add comments to make it easer to chnage next time
+                # I'm going to try to figure out what this does and add comments to make it easier to change next time.
 
                 #so self.number_of_bars is kind of a lie. there are actually 2x that many bars because self.number_of_bars 
                 #is the bars per channel, and there are 2 channels.
