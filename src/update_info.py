@@ -17,7 +17,7 @@ def update_info(self , scrobble_enabled , network):
 
     song_name = metadata.get('xesam:title')
     if song_name == None:
-        song_name = 'unkown'
+        song_name = 'unknown'
     self.song_name.set_label(song_name)
 
     try:
