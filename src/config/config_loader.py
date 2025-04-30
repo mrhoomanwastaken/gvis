@@ -79,7 +79,7 @@ def load_config():
             colors = gvis_config['color_gradent'].split(',')
             colors = [float(i) for i in colors]
             if gvis_config['RGB255']:
-                colors = [1/255 for i in colors]
+                colors = [i/255 for i in colors]
             colors_list = []
             if gvis_config['RGBA']:
                 num_colors = len(colors) // 4
