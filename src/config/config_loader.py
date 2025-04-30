@@ -33,6 +33,7 @@ def load_config():
             'buffer_size': int(config['gvis']['buffer_size']),
             'input_source': str(config['gvis']['input_source']),
             'vis_type': str(config['gvis']['vis_type']),
+            'flip_vector' : str(config['gvis']['flip_vector']).split(','),
             'fill': config.getboolean('gvis', 'fill'),
             'RGBA' : config.getboolean('gvis' , 'RGBA'),
             'RGB255' : config.getboolean('gvis' , 'RGB255'),
@@ -43,6 +44,17 @@ def load_config():
             'color1': config.get('gvis', 'color1', fallback=None),
             'scrobble': config.getboolean('gvis', 'scrobble', fallback=False)
         }
+
+        gvis_config['flip_vector'] = [float(i) for i in gvis_config['flip_vector']]
+        if len(gvis_config['flip_vector']) != 2:
+            print('flip vector needs to be a list of 2 values. falling back to default (1,-1)')
+            gvis_config['flip_vector'] = [1, -1]
+        else:
+            for i in gvis_config['flip_vector']:
+                if i != 1 and i != -1:
+                    print('flip vector can only contain 1 or -1. falling back to default (1,-1)')
+                    gvis_config['flip_vector'] = [1, -1]
+                    break
 
 
         # Parse background color

@@ -50,6 +50,7 @@ vis_type = gvis_config['vis_type']
 fill = gvis_config['fill']
 gradient = gvis_config['gradient']
 scrobble_enabled = gvis_config['scrobble']
+flip_vector = gvis_config['flip_vector']
 
 # Parse background color
 background_col = gvis_config['background_col']
@@ -214,7 +215,8 @@ class MyWindow(Gtk.Window):
                 colors_list=colors_list if gradient else None,
                 num_colors=num_colors if gradient else None,
                 gradient_points=gradient_points if gradient else None,
-                color=color if not gradient else None
+                color=color if not gradient else None,
+                flip_vector=flip_vector
             )
         else:
             raise ValueError(f"Unsupported visualization type: {vis_type}")
