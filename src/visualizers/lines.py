@@ -68,7 +68,7 @@ class LinesVisualizer:
 
             cr.set_line_width(2)
             for i, value in enumerate(self.sample):
-                #im going to try to figure out what this does and add comments to make it easer to chnage next time
+                # I will analyze this section to understand its functionality and add comments to make it easier to modify in the future.
 
                 #so self.number_of_bars is kind of a lie. there are actually 2x that many bars because self.number_of_bars 
                 #is the bars per channel, and there are 2 channels.
