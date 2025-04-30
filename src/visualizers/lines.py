@@ -79,7 +79,7 @@ class LinesVisualizer:
                         a = 0
                     else:
                         a = 1
-                    i = (self.number_of_bars + ((i - self.number_of_bars * a) * self.flip_vector[0])) #becuase we want bass to be in the middle, we flip the index making it count up
+                    i = (self.number_of_bars + ((i - self.number_of_bars * a) * self.flip_vector[0])) #because we want bass to be in the middle, we flip the index making it count up
                     flip = self.flip_vector[0]
                 else:
                     if self.flip_vector[1] == -1:
