@@ -204,7 +204,8 @@ class MyWindow(Gtk.Window):
                 colors_list=colors_list if gradient else None,
                 num_colors=num_colors if gradient else None,
                 gradient_points=gradient_points if gradient else None,
-                color=color if not gradient else None
+                color=color if not gradient else None,
+                flip_vector=flip_vector
             )
         elif vis_type == 'lines':
             self.visualizer = LinesVisualizer(
