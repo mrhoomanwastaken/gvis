@@ -79,7 +79,7 @@ class LinesVisualizer:
                         a = 0
                     else:
                         a = 1
-                    i = ((self.number_of_bars + 1) + ((i - self.number_of_bars * a) * self.flip_vector[0])) #becuase we want bass to be in the middle, we flip the index making it count up
+                    i = (self.number_of_bars + ((i - self.number_of_bars * a) * self.flip_vector[0])) #becuase we want bass to be in the middle, we flip the index making it count up
                     flip = self.flip_vector[0]
                 else:
                     if self.flip_vector[1] == -1:
@@ -90,10 +90,46 @@ class LinesVisualizer:
                     flip = self.flip_vector[1]
 
                 #flip is used to determine the direction of the line
-                #flip = 1 goes right, flip = -1 goes left
+                #flip = 1 goes left, flip = -1 goes right
                 
                 #this is the main line drawing logic
                 cr.line_to((i + flip) * self.bar_width, self.widget_height * (1 - value))
+
+                if i == 1 and self.flip_vector[0] == -1:
+                    cr.line_to(0, self.widget_height)
+                    if self.flip_vector[1] == -1:
+                        cr.line_to(self.widget_width, self.widget_height)
+                        cr.line_to(self.widget_width, self.widget_height * (1 - self.sample[self.number_of_bars]))
+                    else:
+                        cr.line_to(((self.widget_width // 2) - self.bar_width), self.widget_height)
+                        cr.move_to(((self.widget_width // 2) - self.bar_width), self.widget_height * (1 - self.sample[0]))
+                
+                elif i == self.number_of_bars + 1 and self.flip_vector[1] == -1:
+                    if self.flip_vector[0] == -1:
+                        cr.line_to(((self.widget_width // 2) - self.bar_width) , self.widget_height * (1 - self.sample[0]))
+                
+                
+
+                if i == self.number_of_bars * 2 - 1 and self.flip_vector[1] == 1:
+                    cr.line_to(self.widget_width, self.widget_height)
+                    if self.flip_vector[0] == -1:
+                        cr.line_to(((self.widget_width // 2) - self.bar_width), self.widget_height)
+                    else:
+                        cr.line_to(0 , self.widget_height)
+                        cr.line_to(0 , self.widget_height * (1 - self.sample[0]))
+                        cr.line_to(0 + self.bar_width , self.widget_height * (1 - self.sample[0]))
+                
+                elif self.flip_vector == [1 , -1]:
+                    if i == self.number_of_bars - 1:
+                        cr.move_to(self.widget_width, self.widget_height * (1 - self.sample[self.number_of_bars]))
+                    elif i == self.number_of_bars + 1:
+                        cr.line_to(self.widget_width // 2 , self.widget_height * (1 - self.sample[self.number_of_bars - 1]))
+                        cr.move_to(self.bar_width , self.widget_height * (1 - self.sample[0]))
+                        cr.line_to(0 , self.widget_height * (1 - self.sample[0]))
+                        cr.line_to(0 , self.widget_height)
+                        cr.line_to(self.widget_width , self.widget_height)
+                        cr.line_to(self.widget_width , self.widget_height * (1 - self.sample[self.number_of_bars]))
+                        cr.line_to(self.widget_width - self.bar_width , self.widget_height * (1 - self.sample[self.number_of_bars]))
 
             if self.fill:
                 cr.fill()
