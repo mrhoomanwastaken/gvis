@@ -89,9 +89,9 @@ class BarsVisualizer:
 
     def _setup_shaders(self):
         """Set up GPU shaders."""
-    def _setup_shaders(self):
-        """Set up GPU shaders."""
         # Vertex shader for bar rendering
+        # aka. wizard magic.
+        # shaders scare me
         vertex_shader = """
         #version 330 core
         
@@ -195,6 +195,10 @@ class BarsVisualizer:
         self.texture = self.ctx.texture((self.widget_width, self.widget_height), 4)
         self.fbo = self.ctx.framebuffer(self.texture)
 
+    
+
+    #note: I have not tested this yet so it might just break
+    #I also might never test it becuase I dont feel like it
     def _initialize_cpu_fallback(self, widget):
         """Initialize CPU fallback rendering."""
         self.widget_width = widget.get_allocated_width()
@@ -228,6 +232,7 @@ class BarsVisualizer:
                 self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
 
     def update_gpu_data(self):
+        #memory bus go burrr
         """Upload bar height data to GPU."""
         if not self.initialized or self.sample is None:
             return
@@ -353,6 +358,7 @@ class BarsVisualizer:
         # Fallback to CPU rendering
         self._fallback_cpu_render(widget, cr)
 
+    #untested
     def _fallback_cpu_render(self, widget, cr):
         """Fallback to CPU rendering if GPU fails."""
         # Set the transparent background
@@ -385,6 +391,8 @@ class BarsVisualizer:
                 
                 cr.set_source(gradient_pattern)
 
+            # this is bad and awful and I hate it
+            # might rewrite this later but we have cool gpu shaders now so I might not
             for i, value in enumerate(self.sample):
                 if i < self.number_of_bars:
                     i = (self.number_of_bars - i)
@@ -405,6 +413,8 @@ class BarsVisualizer:
             else:
                 cr.stroke()
 
+    #this looks like it might cause a memory leak.
+    #but I dont know enough about openGL and modernGL to know if it does
     def cleanup(self):
         """Clean up GPU resources."""
         if self.ctx:
@@ -414,6 +424,7 @@ class BarsVisualizer:
                 pass  # Ignore cleanup errors
 
     def get_performance_info(self):
+        #I need to make the debug flag work so this wont spam the console
         """Return information about GPU acceleration status."""
         return {
             "moderngl_available": MODERNGL_AVAILABLE,

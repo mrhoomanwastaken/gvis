@@ -1,5 +1,7 @@
 import cairo
 
+#this still uses the cpu
+#will change when I feel like it
 class LinesVisualizer:
     def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, gradient_points=None, color=None):
         self.background_col = background_col

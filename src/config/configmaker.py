@@ -1,5 +1,7 @@
 import configparser
-
+#this is run every time the program is run
+#it sould only be running when there is no config file
+#TODO: fix that ^
 
 def create_config():
     config = configparser.ConfigParser()

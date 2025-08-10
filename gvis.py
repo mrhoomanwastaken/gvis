@@ -6,6 +6,7 @@ import sys
 gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
+#why does gtk make me do this?
 from gi.repository import Gtk, Gdk , GLib
 
 
@@ -69,7 +70,7 @@ except RuntimeError as e:
 
 
 
-
+#lastfm scrobbling
 if scrobble_enabled:
     try:
         from src.scrobbler import initialize_lastfm
@@ -242,7 +243,7 @@ class MyWindow(Gtk.Window):
         self.width = x1 - x0
 
 
-    def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
+    def on_properties_changed(self, interface_name, changed_properties, invalidated_properties): #where did interface_name come from? vibe coding at it finest folks.
         print(changed_properties)
         self.update_info()
 
