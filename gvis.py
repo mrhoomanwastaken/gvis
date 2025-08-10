@@ -17,7 +17,7 @@ from src.visualizers.bars import BarsVisualizer
 from src.visualizers.lines import LinesVisualizer
 from src.mpris_service import get_mpris_service
 from src.update_info import update_info, update_progress
-from src.run_cava import run_cava
+from src.cava.run_cava import run_cava
 
 
 if getattr(sys, 'frozen', False):
