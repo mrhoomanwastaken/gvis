@@ -17,7 +17,7 @@ from src.visualizers.bars import BarsVisualizer
 from src.visualizers.lines import LinesVisualizer
 from src.mpris_service import get_mpris_service
 from src.update_info import update_info, update_progress
-from src.run_cava import run_cava
+from src.cava.run_cava import run_cava
 
 
 if getattr(sys, 'frozen', False):
@@ -194,31 +194,31 @@ class MyWindow(Gtk.Window):
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         # Initialize the appropriate visualizer based on the configuration
+        visualizer_args = {
+            'background_col': background_col,
+            'number_of_bars': number_of_bars,
+            'fill': fill,
+            'gradient': gradient,
+            'colors_list': colors_list if gradient else None,
+            'num_colors': num_colors if gradient else None,
+            'gradient_points': gradient_points if gradient else None,
+            'color': color if not gradient else None
+        }
+        
         if vis_type == 'bars':
-            self.visualizer = BarsVisualizer(
-                background_col=background_col,
-                number_of_bars=number_of_bars,
-                fill=fill,
-                gradient=gradient,
-                colors_list=colors_list if gradient else None,
-                num_colors=num_colors if gradient else None,
-                gradient_points=gradient_points if gradient else None,
-                color=color if not gradient else None
-            )
+            self.visualizer = BarsVisualizer(**visualizer_args)
         elif vis_type == 'lines':
-            self.visualizer = LinesVisualizer(
-                background_col=background_col,
-                number_of_bars=number_of_bars,
-                fill=fill,
-                gradient=gradient,
-                colors_list=colors_list if gradient else None,
-                num_colors=num_colors if gradient else None,
-                gradient_points=gradient_points if gradient else None,
-                color=color if not gradient else None
-            )
+            self.visualizer = LinesVisualizer(**visualizer_args)
         else:
             raise ValueError(f"Unsupported visualization type: {vis_type}")
 
+        # Print GPU acceleration status
+        if hasattr(self.visualizer, 'get_performance_info'):
+            perf_info = self.visualizer.get_performance_info()
+            print(f"Visualization acceleration: {perf_info['current_mode']}")
+            if perf_info['current_mode'] == 'GPU':
+                print(f"GPU Context: {perf_info['context_info']}")
+        
         self.drawing_area.connect("draw", self.visualizer.on_draw)
         if self.source:
             self.source.connect("g-properties-changed", self.on_properties_changed)
