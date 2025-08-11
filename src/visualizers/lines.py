@@ -89,28 +89,23 @@ class LinesVisualizer:
 
     def _setup_shaders(self):
         """Set up GPU shaders."""
-        # Vertex shader for bar rendering
+        # Vertex shader for line rendering
         vertex_shader = """
         #version 330 core
         
-        layout(location = 0) in vec2 position;
+        layout(location = 0) in float x_position;
         layout(location = 1) in float height;
-        layout(location = 2) in float bar_index;
         
         uniform float widget_width;
         uniform float widget_height;
-        uniform int number_of_bars;
         
         out float v_height;
-        out float v_bar_index;
         out vec2 v_position;
         
         void main() {
-            float bar_width = widget_width / (number_of_bars * 2.0);
-            float x_offset = bar_index * bar_width;
-            
-            vec2 final_pos = vec2(x_offset + position.x * bar_width, 
-                                position.y * widget_height * height);
+            // Scale x to screen width, scale y by audio height (don't flip Y)
+            vec2 final_pos = vec2(x_position * widget_width, 
+                                height * widget_height);
             
             // Convert to normalized device coordinates
             gl_Position = vec4((final_pos.x / widget_width) * 2.0 - 1.0, 
@@ -118,7 +113,6 @@ class LinesVisualizer:
                               0.0, 1.0);
             
             v_height = height;
-            v_bar_index = bar_index;
             v_position = final_pos;
         }
         """
@@ -128,7 +122,6 @@ class LinesVisualizer:
         #version 330 core
         
         in float v_height;
-        in float v_bar_index;
         in vec2 v_position;
         
         uniform bool use_gradient;
@@ -213,19 +206,14 @@ class LinesVisualizer:
 
     def _setup_buffers(self):
         """Set up GPU buffers."""
-        # Create vertex buffer for a single quad (will be instanced for each bar)
-        vertices = np.array([
-            # Position (x, y)
-            0.0, 0.0,  # Bottom-left
-            1.0, 0.0,  # Bottom-right
-            1.0, 1.0,  # Top-right
-            0.0, 1.0,  # Top-left
-        ], dtype=np.float32)
+        # Create vertex data for line points - just x positions, heights will come from instance data
+        vertices = []
+        for i in range(self.number_of_bars * 2):
+            x_pos = i / (self.number_of_bars * 2 - 1)  # Normalize 0 to 1
+            vertices.append(x_pos)
         
-        indices = np.array([0, 1, 2, 0, 2, 3], dtype=np.uint32)
-        
-        self.vbo = self.ctx.buffer(vertices.tobytes())
-        self.ibo = self.ctx.buffer(indices.tobytes())
+        vertices_array = np.array(vertices, dtype=np.float32)
+        self.vbo = self.ctx.buffer(vertices_array.tobytes())
         
         # Create framebuffer for rendering to texture
         self.texture = self.ctx.texture((self.widget_width, self.widget_height), 4)
@@ -268,42 +256,39 @@ class LinesVisualizer:
                 self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
 
     def update_gpu_data(self):
-        """Upload bar height data to GPU."""
+        """Upload line point data to GPU."""
         if not self.initialized or self.sample is None:
             return
             
-        # Prepare instance data for each bar - create mirrored layout
-        instance_data = []
+        # Prepare height data for each point - create mirrored layout
+        heights = []
         
-        # Left side bars (reversed order)
+        # Left side (reversed order)
         for i in range(self.number_of_bars):
             if i < len(self.sample):
-                height = self.sample[i]
-                bar_index = float(self.number_of_bars - 1 - i)  # Reverse for left side
-                instance_data.extend([height, bar_index])
+                height = self.sample[self.number_of_bars - 1 - i]  # Reverse for left side
+                heights.append(height)
         
-        # Right side bars (normal order)  
+        # Right side (normal order)  
         for i in range(self.number_of_bars):
-            sample_index = self.number_of_bars + i
+            sample_index = i
             if sample_index < len(self.sample):
                 height = self.sample[sample_index]
-                bar_index = float(self.number_of_bars + i)  # Continue from center
-                instance_data.extend([height, bar_index])
+                heights.append(height)
         
-        instance_array = np.array(instance_data, dtype=np.float32)
+        heights_array = np.array(heights, dtype=np.float32)
         
-        # Update or create instance buffer
-        if hasattr(self, 'instance_vbo'):
-            self.instance_vbo.write(instance_array.tobytes())
+        # Update or create height buffer
+        if hasattr(self, 'height_vbo'):
+            self.height_vbo.write(heights_array.tobytes())
         else:
-            self.instance_vbo = self.ctx.buffer(instance_array.tobytes())
+            self.height_vbo = self.ctx.buffer(heights_array.tobytes())
             
-            # Create VAO with instanced rendering
+            # Create VAO with line strip rendering
             self.vao = self.ctx.vertex_array(
                 self.program,
-                [(self.vbo, '2f', 'position'),
-                 (self.instance_vbo, '1f 1f/i', 'height', 'bar_index')],
-                self.ibo
+                [(self.vbo, '1f', 'x_position'),
+                 (self.height_vbo, '1f', 'height')]
             )
 
     def render_to_texture(self):
@@ -321,8 +306,7 @@ class LinesVisualizer:
         
         # Set uniforms
         self.program['widget_width'] = float(self.widget_width)
-        self.program['widget_height'] = float(self.widget_height) 
-        self.program['number_of_bars'] = self.number_of_bars
+        self.program['widget_height'] = float(self.widget_height)
         
         if self.gradient and self.colors_list:
             self.program['use_gradient'] = True
@@ -355,8 +339,11 @@ class LinesVisualizer:
                 self.ctx.enable(moderngl.BLEND)
                 self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
             
-            # Render all bars in one draw call using instancing
-            self.vao.render(instances=self.number_of_bars * 2)
+            # Set line width for better visibility
+            self.ctx.line_width = 2.0
+            
+            # Render as line strip
+            self.vao.render(mode=moderngl.LINE_STRIP)
         
         return self.texture
 
@@ -406,17 +393,14 @@ class LinesVisualizer:
         # Fallback to CPU rendering
         self._fallback_cpu_render(widget, cr)
 
-    #untested
     def _fallback_cpu_render(self, widget, cr):
         """Fallback to CPU rendering if GPU fails."""
         # Set the transparent background
         cr.set_source_rgba(*self.background_col)
         cr.paint()
 
-        # Draw the bars visualization using CPU
+        # Draw the line visualization using CPU
         if self.sample is not None:
-            bar_width = self.widget_width / (self.number_of_bars * 2)
-            
             if not self.gradient:
                 cr.set_source_rgba(*self.color)
             else:
@@ -439,24 +423,39 @@ class LinesVisualizer:
                 
                 cr.set_source(gradient_pattern)
 
-            # this is bad and awful and I hate it
-            # might rewrite this later but we have cool gpu shaders now so I might not
-            for i, value in enumerate(self.sample):
-                if i < self.number_of_bars:
-                    i = (self.number_of_bars - i)
-                    flip = -1
-                else:
-                    flip = 1
-                if i == self.number_of_bars:
-                    cr.move_to(i * bar_width, self.widget_height * (1 - self.sample[0]))
-                cr.line_to(i * bar_width, self.widget_height * (1 - value))
-                cr.line_to((i + flip) * bar_width, self.widget_height * (1 - value))
-
-                if i == 1 or i == self.number_of_bars * 2 - 1:
-                    cr.line_to((i + flip) * bar_width, self.widget_height)
-                    cr.line_to(widget.get_allocated_width() / 2, self.widget_height)
+            # Set line width
+            cr.set_line_width(2.0)
+            
+            # Draw continuous line
+            points_per_side = len(self.sample) // 2
+            
+            # Start from the left side (reversed)
+            first_point = True
+            for i in range(points_per_side):
+                sample_idx = points_per_side - 1 - i  # Reverse for left side
+                if sample_idx < len(self.sample):
+                    x = (i / (points_per_side * 2 - 1)) * self.widget_width
+                    y = self.widget_height * self.sample[sample_idx]  # Remove the (1 - ...)
+                    
+                    if first_point:
+                        cr.move_to(x, y)
+                        first_point = False
+                    else:
+                        cr.line_to(x, y)
+            
+            # Continue to the right side (normal order)
+            for i in range(points_per_side):
+                sample_idx = i
+                if sample_idx < len(self.sample):
+                    x = ((points_per_side + i) / (points_per_side * 2 - 1)) * self.widget_width
+                    y = self.widget_height * self.sample[sample_idx]  # Remove the (1 - ...)
+                    cr.line_to(x, y)
 
             if self.fill:
+                # Close the path for filling
+                cr.line_to(self.widget_width, 0)  # Go to bottom right
+                cr.line_to(0, 0)  # Go to bottom left
+                cr.close_path()
                 cr.fill()
             else:
                 cr.stroke()
