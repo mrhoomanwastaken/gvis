@@ -46,6 +46,9 @@ class LinesVisualizer:
             self.widget_width = widget.get_allocated_width()
             self.widget_height = widget.get_allocated_height()
             
+            # Store the current fill setting to detect changes
+            self._last_fill_setting = self.fill
+            
             # Try to create ModernGL context with different backends
             self.ctx = None
             
@@ -106,11 +109,26 @@ class LinesVisualizer:
 
     def _setup_buffers(self):
         """Set up GPU buffers."""
-        # Create vertex data for line points - just x positions, heights will come from instance data
-        vertices = []
-        for i in range(self.number_of_bars * 2):
-            x_pos = i / (self.number_of_bars * 2 - 1)  # Normalize 0 to 1
-            vertices.append(x_pos)
+        if self.fill:
+            # For filled mode, create vertices for a triangle strip that forms a filled waveform
+            # We need alternating vertices: bottom points (y=0) and waveform points
+            vertices = []
+            
+            # Create pairs of vertices: baseline and waveform point
+            for i in range(self.number_of_bars * 2):
+                x_pos = i / (self.number_of_bars * 2 - 1)  # Normalize 0 to 1
+                vertices.append(x_pos)  # Waveform point
+                vertices.append(x_pos)  # Baseline point (same x, different y in height data)
+                
+            self.vertices_per_point = 2  # Two vertices per audio sample point
+        else:
+            # For line mode, just create the line points
+            vertices = []
+            for i in range(self.number_of_bars * 2):
+                x_pos = i / (self.number_of_bars * 2 - 1)  # Normalize 0 to 1
+                vertices.append(x_pos)
+                
+            self.vertices_per_point = 1  # One vertex per audio sample point
         
         vertices_array = np.array(vertices, dtype=np.float32)
         self.vbo = self.ctx.buffer(vertices_array.tobytes())
@@ -159,37 +177,72 @@ class LinesVisualizer:
         """Upload line point data to GPU."""
         if not self.initialized or self.sample is None:
             return
+        
+        # Check if fill setting changed and rebuild buffers if needed
+        if hasattr(self, '_last_fill_setting') and self._last_fill_setting != self.fill:
+            self._last_fill_setting = self.fill
+            self._setup_buffers()  # Rebuild buffers with new layout
             
-        # Prepare height data for each point - create mirrored layout
+        # Prepare height data based on rendering mode
         heights = []
         
-        # Left side (reversed order)
-        for i in range(self.number_of_bars):
-            if i < len(self.sample):
-                height = self.sample[self.number_of_bars - 1 - i]  # Reverse for left side
-                heights.append(height)
-        
-        # Right side (normal order)  
-        for i in range(self.number_of_bars):
-            sample_index = i
-            if sample_index < len(self.sample):
-                height = self.sample[sample_index]
-                heights.append(height)
+        if self.fill:
+            # For filled mode, create alternating heights: waveform and baseline
+            # Left side (reversed order)
+            for i in range(self.number_of_bars):
+                if i < len(self.sample):
+                    height = self.sample[self.number_of_bars - 1 - i]  # Waveform point
+                    heights.append(height)
+                    heights.append(0.0)  # Baseline point
+            
+            # Right side (normal order)  
+            for i in range(self.number_of_bars):
+                sample_index = i
+                if sample_index < len(self.sample):
+                    height = self.sample[sample_index]  # Waveform point
+                    heights.append(height)
+                    heights.append(0.0)  # Baseline point
+        else:
+            # For line mode, just the waveform points
+            # Left side (reversed order)
+            for i in range(self.number_of_bars):
+                if i < len(self.sample):
+                    height = self.sample[self.number_of_bars - 1 - i]
+                    heights.append(height)
+            
+            # Right side (normal order)  
+            for i in range(self.number_of_bars):
+                sample_index = i
+                if sample_index < len(self.sample):
+                    height = self.sample[sample_index]
+                    heights.append(height)
         
         heights_array = np.array(heights, dtype=np.float32)
         
         # Update or create height buffer
         if hasattr(self, 'height_vbo'):
-            self.height_vbo.write(heights_array.tobytes())
+            # Check if buffer size needs to change
+            if len(heights_array) * 4 != self.height_vbo.size:  # 4 bytes per float32
+                self.height_vbo.release()
+                self.height_vbo = self.ctx.buffer(heights_array.tobytes())
+                self._rebuild_vao()
+            else:
+                self.height_vbo.write(heights_array.tobytes())
         else:
             self.height_vbo = self.ctx.buffer(heights_array.tobytes())
-            
-            # Create VAO with line strip rendering
-            self.vao = self.ctx.vertex_array(
-                self.program,
-                [(self.vbo, '1f', 'x_position'),
-                 (self.height_vbo, '1f', 'height')]
-            )
+            self._rebuild_vao()
+    
+    def _rebuild_vao(self):
+        """Rebuild VAO when buffer structure changes."""
+        if hasattr(self, 'vao') and self.vao:
+            self.vao.release()
+        
+        # Create VAO
+        self.vao = self.ctx.vertex_array(
+            self.program,
+            [(self.vbo, '1f', 'x_position'),
+             (self.height_vbo, '1f', 'height')]
+        )
 
     def render_to_texture(self):
         """Render bars to GPU texture."""
@@ -218,11 +271,14 @@ class LinesVisualizer:
                 self.program['num_gradient_colors'] = min(len(self.colors_list), 8)
                 
                 # Set gradient points
-                if self.gradient_points and len(self.gradient_points) >= 4:
-                    gp = [float(x) for x in self.gradient_points[:4]]
-                    self.program['gradient_points'] = tuple(gp)
-                else:
-                    self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+                try:
+                    if self.gradient_points and len(self.gradient_points) >= 4:
+                        gp = [float(x) for x in self.gradient_points[:4]]
+                        self.program['gradient_points'] = tuple(gp)
+                    else:
+                        self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+                except KeyError:
+                    pass  # gradient_points uniform not found (probably optimized out)
                 
                 # Set individual gradient color uniforms
                 for i in range(8):
@@ -234,7 +290,7 @@ class LinesVisualizer:
                             last_color = self.colors_list[-1] if self.colors_list else (0.0, 0.0, 0.0, 1.0)
                             self.program[f'gradient_color{i}'] = last_color
                     except KeyError:
-                        pass  # Custom shader might not use gradient colors
+                        pass  # gradient_color uniform not found
             else:
                 self.program['use_gradient'] = False
                 self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
@@ -252,12 +308,13 @@ class LinesVisualizer:
             if self.fill:
                 self.ctx.enable(moderngl.BLEND)
                 self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
-            
-            # Set line width for better visibility
-            self.ctx.line_width = 2.0
-            
-            # Render as line strip
-            self.vao.render(mode=moderngl.LINE_STRIP)
+                # Render as triangle strip for proper filled waveform
+                self.vao.render(mode=moderngl.TRIANGLE_STRIP)
+            else:
+                # Set line width for better visibility
+                self.ctx.line_width = 2.0
+                # Render as line strip
+                self.vao.render(mode=moderngl.LINE_STRIP)
         
         return self.texture
 

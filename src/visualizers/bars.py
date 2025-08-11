@@ -231,11 +231,14 @@ class BarsVisualizer:
                 self.program['num_gradient_colors'] = min(len(self.colors_list), 8)
                 
                 # Set gradient points
-                if self.gradient_points and len(self.gradient_points) >= 4:
-                    gp = [float(x) for x in self.gradient_points[:4]]
-                    self.program['gradient_points'] = tuple(gp)
-                else:
-                    self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+                try:
+                    if self.gradient_points and len(self.gradient_points) >= 4:
+                        gp = [float(x) for x in self.gradient_points[:4]]
+                        self.program['gradient_points'] = tuple(gp)
+                    else:
+                        self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+                except KeyError:
+                    pass  # gradient_points uniform not found (probably optimized out)
                 
                 # Set individual gradient color uniforms
                 for i in range(8):
@@ -247,7 +250,7 @@ class BarsVisualizer:
                             last_color = self.colors_list[-1] if self.colors_list else (0.0, 0.0, 0.0, 1.0)
                             self.program[f'gradient_color{i}'] = last_color
                     except KeyError:
-                        pass  # Custom shader might not use gradient colors
+                        pass  # gradient_color uniform not found
             else:
                 self.program['use_gradient'] = False
                 self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
@@ -265,9 +268,13 @@ class BarsVisualizer:
             if self.fill:
                 self.ctx.enable(moderngl.BLEND)
                 self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
-            
-            # Render all bars in one draw call using instancing
-            self.vao.render(instances=self.number_of_bars * 2)
+                # Render filled bars
+                self.vao.render(instances=self.number_of_bars * 2)
+            else:
+                # Render as wireframe (outline only)
+                self.ctx.wireframe = True
+                self.vao.render(instances=self.number_of_bars * 2)
+                self.ctx.wireframe = False
         
         return self.texture
 
