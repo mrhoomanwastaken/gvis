@@ -1,4 +1,4 @@
-nuitka --onefile --output-dir=nudist --include-data-files='./src/cava/libcavacore.so=src/cava/libcavacore.so' --include-data-files='./.env=.env' --include-data-dir="./src/images=src/images" --include-package="gi" --debug --show-progress --clang gvis.py
+nuitka --onefile --output-dir=nudist --include-data-files='./src/cava/libcavacore.so=src/cava/libcavacore.so' --include-data-files='./.env=.env' --include-data-dir="./src/images=src/images" --include-data-dir="./src/visualizers/shaders=src/visualizers/shaders" --include-package="gi" --debug --show-progress --clang gvis.py
 
 I lost this command and had to remake it one time
 nuitka's docs suck.
