@@ -51,6 +51,8 @@ vis_type = gvis_config['vis_type']
 fill = gvis_config['fill']
 gradient = gvis_config['gradient']
 scrobble_enabled = gvis_config['scrobble']
+customshader = gvis_config['custom_shader']
+fragmentshader = gvis_config['fragment_shader']
 
 # Parse background color
 background_col = gvis_config['background_col']
@@ -203,7 +205,8 @@ class MyWindow(Gtk.Window):
             'colors_list': colors_list if gradient else None,
             'num_colors': num_colors if gradient else None,
             'gradient_points': gradient_points if gradient else None,
-            'color': color if not gradient else None
+            'color': color if not gradient else None,
+            'config': gvis_config  # Pass the full config for shader loading
         }
         
         if vis_type == 'bars':

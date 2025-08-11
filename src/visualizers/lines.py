@@ -1,6 +1,6 @@
 import cairo
 import numpy as np
-from .shaders import COMMON_FRAGMENT_SHADER, LINES_VERTEX_SHADER
+from .shaders import COMMON_FRAGMENT_SHADER, LINES_VERTEX_SHADER, get_shaders_for_config
 
 try:
     import moderngl
@@ -10,7 +10,7 @@ except ImportError:
     print("ModernGL not available - falling back to CPU rendering")
 
 class LinesVisualizer:
-    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None,gradient_points=None, color=None):
+    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, gradient_points=None, color=None, config=None):
         self.background_col = background_col
         self.number_of_bars = number_of_bars
         self.fill = fill
@@ -19,6 +19,7 @@ class LinesVisualizer:
         self.num_colors = num_colors
         self.color = color
         self.gradient_points = gradient_points
+        self.config = config  # Store config for shader loading
         self.sample = None
         self.bar_width = None
         self.gradient_pattern = None
@@ -75,7 +76,7 @@ class LinesVisualizer:
             print(f"ModernGL context info: {self.ctx.info}")
             
             # Continue with shader setup...
-            self._setup_shaders()
+            self._setup_shaders(self.config)
             self._setup_buffers()
             
             self.initialized = True
@@ -88,12 +89,19 @@ class LinesVisualizer:
             # Fall back to CPU rendering
             self._initialize_cpu_fallback(widget)
 
-    def _setup_shaders(self):
-        """Set up GPU shaders."""
-        # Create shader program using shared shaders
+    def _setup_shaders(self, config=None):
+        """Set up GPU shaders with flexible loading."""
+        if config and config.get('custom_shader', False):
+            # Use config-based loading for custom shaders
+            vertex_shader, fragment_shader = get_shaders_for_config(config, 'lines')
+        else:
+            # Use default shaders
+            vertex_shader = LINES_VERTEX_SHADER
+            fragment_shader = COMMON_FRAGMENT_SHADER
+        
         self.program = self.ctx.program(
-            vertex_shader=LINES_VERTEX_SHADER,
-            fragment_shader=COMMON_FRAGMENT_SHADER
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader
         )
 
     def _setup_buffers(self):
@@ -196,32 +204,46 @@ class LinesVisualizer:
         if self.sample is None:
             return self.texture
         
-        # Set uniforms
-        self.program['widget_width'] = float(self.widget_width)
-        self.program['widget_height'] = float(self.widget_height)
+        # Set uniforms (with error handling for custom shaders)
+        try:
+            self.program['widget_width'] = float(self.widget_width)
+            self.program['widget_height'] = float(self.widget_height)
+        except KeyError:
+            pass  # Custom shader might not use these uniforms
         
-        if self.gradient and self.colors_list:
-            self.program['use_gradient'] = True
-            self.program['num_gradient_colors'] = min(len(self.colors_list), 8)
-            
-            # Set gradient points
-            if self.gradient_points and len(self.gradient_points) >= 4:
-                gp = [float(x) for x in self.gradient_points[:4]]
-                self.program['gradient_points'] = tuple(gp)
-            else:
-                self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
-            
-            # Set individual gradient color uniforms
-            for i in range(8):
-                if i < len(self.colors_list):
-                    self.program[f'gradient_color{i}'] = self.colors_list[i]
+        # Only set gradient uniforms if the shader expects them
+        try:
+            if self.gradient and self.colors_list:
+                self.program['use_gradient'] = True
+                self.program['num_gradient_colors'] = min(len(self.colors_list), 8)
+                
+                # Set gradient points
+                if self.gradient_points and len(self.gradient_points) >= 4:
+                    gp = [float(x) for x in self.gradient_points[:4]]
+                    self.program['gradient_points'] = tuple(gp)
                 else:
-                    # Pad with the last color
-                    last_color = self.colors_list[-1] if self.colors_list else (0.0, 0.0, 0.0, 1.0)
-                    self.program[f'gradient_color{i}'] = last_color
-        else:
-            self.program['use_gradient'] = False
-            self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
+                    self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+                
+                # Set individual gradient color uniforms
+                for i in range(8):
+                    try:
+                        if i < len(self.colors_list):
+                            self.program[f'gradient_color{i}'] = self.colors_list[i]
+                        else:
+                            # Pad with the last color
+                            last_color = self.colors_list[-1] if self.colors_list else (0.0, 0.0, 0.0, 1.0)
+                            self.program[f'gradient_color{i}'] = last_color
+                    except KeyError:
+                        pass  # Custom shader might not use gradient colors
+            else:
+                self.program['use_gradient'] = False
+                self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
+        except KeyError:
+            # Custom shader doesn't use gradient uniforms, that's fine
+            try:
+                self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
+            except KeyError:
+                pass  # Custom shader doesn't use solid_color either
         
         # Update GPU data and render
         self.update_gpu_data()

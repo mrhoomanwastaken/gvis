@@ -24,7 +24,9 @@ def create_config():
                           'gradient_points' : '1,1,1,1',
                           'vis_type' : 'bars' , 
                           'fill' : True , 
-                          'scrobble' : False}
+                          'scrobble' : False,
+                          'CustomShader' : False,
+                          'FragmentShader' : 'src/visualizers/shaders/custom_fragment.glsl'}
     # Write the configuration to a file
     with open('config_example.ini', 'w') as configfile:
         config.write(configfile)
