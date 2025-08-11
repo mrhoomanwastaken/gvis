@@ -39,7 +39,9 @@ def load_config():
             'color_gradent': config.get('gvis', 'color_gradent', fallback=None),
             'gradient_points': config.get('gvis', 'gradient_points', fallback=None).split(',') ,
             'color1': config.get('gvis', 'color1', fallback=None),
-            'scrobble': config.getboolean('gvis', 'scrobble', fallback=False)
+            'scrobble': config.getboolean('gvis', 'scrobble', fallback=False),
+            'custom_shader': config.getboolean('gvis', 'CustomShader', fallback=False),
+            'fragment_shader': config.get('gvis', 'FragmentShader', fallback=None)
         }
 
         # Parse background color

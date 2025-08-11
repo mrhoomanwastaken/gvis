@@ -6,6 +6,7 @@ import sys
 gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
+#why does gtk make me do this?
 from gi.repository import Gtk, Gdk , GLib
 
 
@@ -50,6 +51,8 @@ vis_type = gvis_config['vis_type']
 fill = gvis_config['fill']
 gradient = gvis_config['gradient']
 scrobble_enabled = gvis_config['scrobble']
+customshader = gvis_config['custom_shader']
+fragmentshader = gvis_config['fragment_shader']
 
 # Parse background color
 background_col = gvis_config['background_col']
@@ -69,7 +72,7 @@ except RuntimeError as e:
 
 
 
-
+#lastfm scrobbling
 if scrobble_enabled:
     try:
         from src.scrobbler import initialize_lastfm
@@ -194,31 +197,32 @@ class MyWindow(Gtk.Window):
         threading.Thread(target=self.run_cava, daemon=True).start()
 
         # Initialize the appropriate visualizer based on the configuration
+        visualizer_args = {
+            'background_col': background_col,
+            'number_of_bars': number_of_bars,
+            'fill': fill,
+            'gradient': gradient,
+            'colors_list': colors_list if gradient else None,
+            'num_colors': num_colors if gradient else None,
+            'gradient_points': gradient_points if gradient else None,
+            'color': color if not gradient else None,
+            'config': gvis_config  # Pass the full config for shader loading
+        }
+        
         if vis_type == 'bars':
-            self.visualizer = BarsVisualizer(
-                background_col=background_col,
-                number_of_bars=number_of_bars,
-                fill=fill,
-                gradient=gradient,
-                colors_list=colors_list if gradient else None,
-                num_colors=num_colors if gradient else None,
-                gradient_points=gradient_points if gradient else None,
-                color=color if not gradient else None
-            )
+            self.visualizer = BarsVisualizer(**visualizer_args)
         elif vis_type == 'lines':
-            self.visualizer = LinesVisualizer(
-                background_col=background_col,
-                number_of_bars=number_of_bars,
-                fill=fill,
-                gradient=gradient,
-                colors_list=colors_list if gradient else None,
-                num_colors=num_colors if gradient else None,
-                gradient_points=gradient_points if gradient else None,
-                color=color if not gradient else None
-            )
+            self.visualizer = LinesVisualizer(**visualizer_args)
         else:
             raise ValueError(f"Unsupported visualization type: {vis_type}")
 
+        # Print GPU acceleration status
+        if hasattr(self.visualizer, 'get_performance_info'):
+            perf_info = self.visualizer.get_performance_info()
+            print(f"Visualization acceleration: {perf_info['current_mode']}")
+            if perf_info['current_mode'] == 'GPU':
+                print(f"GPU Context: {perf_info['context_info']}")
+        
         self.drawing_area.connect("draw", self.visualizer.on_draw)
         if self.source:
             self.source.connect("g-properties-changed", self.on_properties_changed)
@@ -242,7 +246,7 @@ class MyWindow(Gtk.Window):
         self.width = x1 - x0
 
 
-    def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
+    def on_properties_changed(self, interface_name, changed_properties, invalidated_properties): #where did interface_name come from? vibe coding at it finest folks.
         print(changed_properties)
         self.update_info()
 
