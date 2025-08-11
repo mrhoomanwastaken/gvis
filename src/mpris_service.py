@@ -2,6 +2,8 @@ import sys
 import select
 from gi.repository import Gio
 
+#note: I dont like dbus_proxy but the good versions are deprecated
+
 def get_mpris_service():
     bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 

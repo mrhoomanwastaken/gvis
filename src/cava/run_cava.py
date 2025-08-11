@@ -3,7 +3,7 @@ import selectors
 import numpy as np
 import ctypes
 from gi.repository import GLib, Gio
-#uuuh I forgot the licanse for cava
+#uuuh I forgot the license for cava
 #TODO: add it later
 #please dont sue me
 

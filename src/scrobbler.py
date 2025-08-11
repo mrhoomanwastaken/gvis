@@ -5,6 +5,8 @@ import time
 
 def initialize_lastfm():
     # Load environment variables from .env file
+    # if you steal this I will be very sad
+    # so please dont steal this
     load_dotenv()
 
     # Retrieve API keys from environment variables
