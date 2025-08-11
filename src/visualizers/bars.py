@@ -139,30 +139,22 @@ class BarsVisualizer:
         
         uniform bool use_gradient;
         uniform vec4 solid_color;
-        uniform vec4 gradient_colors[16];  // Support up to 16 gradient colors
-        uniform int num_gradient_colors;
+        uniform vec4 gradient_start;
+        uniform vec4 gradient_end;
         uniform vec4 gradient_points;  // x1, y1, x2, y2
         uniform float widget_height;
         
         out vec4 fragment_color;
         
         void main() {
-            if (use_gradient && num_gradient_colors > 1) {
+            if (use_gradient) {
                 // Calculate gradient position based on fragment position
                 float gradient_t = (v_position.y - gradient_points.y * widget_height) / 
                                  ((gradient_points.w - gradient_points.y) * widget_height);
                 gradient_t = clamp(gradient_t, 0.0, 1.0);
                 
-                // Interpolate between gradient colors
-                float color_step = 1.0 / float(num_gradient_colors - 1);
-                int color_index = int(gradient_t / color_step);
-                color_index = min(color_index, num_gradient_colors - 2);
-                
-                float local_t = (gradient_t - float(color_index) * color_step) / color_step;
-                
-                fragment_color = mix(gradient_colors[color_index], 
-                                   gradient_colors[color_index + 1], 
-                                   local_t);
+                // Simple two-color gradient interpolation
+                fragment_color = mix(gradient_start, gradient_end, gradient_t);
             } else {
                 fragment_color = solid_color;
             }
@@ -283,11 +275,13 @@ class BarsVisualizer:
         
         if self.gradient and self.colors_list:
             self.program['use_gradient'] = True
-            self.program['num_gradient_colors'] = min(len(self.colors_list), 16)
             
-            # Upload gradient colors
-            for i, color in enumerate(self.colors_list[:16]):
-                self.program[f'gradient_colors[{i}]'] = color
+            # Use first and last colors for simple two-color gradient
+            gradient_start = self.colors_list[0] if len(self.colors_list) > 0 else (1.0, 0.0, 0.0, 1.0)
+            gradient_end = self.colors_list[-1] if len(self.colors_list) > 1 else gradient_start
+            
+            self.program['gradient_start'] = gradient_start
+            self.program['gradient_end'] = gradient_end
                 
             # Set gradient points
             if self.gradient_points and len(self.gradient_points) >= 4:

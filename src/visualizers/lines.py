@@ -1,25 +1,206 @@
 import cairo
+import numpy as np
 
-#this still uses the cpu
-#will change when I feel like it
+try:
+    import moderngl
+    MODERNGL_AVAILABLE = True
+except ImportError:
+    MODERNGL_AVAILABLE = False
+    print("ModernGL not available - falling back to CPU rendering")
+
 class LinesVisualizer:
-    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, gradient_points=None, color=None):
+    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None,gradient_points=None, color=None):
         self.background_col = background_col
         self.number_of_bars = number_of_bars
         self.fill = fill
         self.gradient = gradient
         self.colors_list = colors_list
         self.num_colors = num_colors
-        self.gradient_points = gradient_points
         self.color = color
+        self.gradient_points = gradient_points
         self.sample = None
         self.bar_width = None
         self.gradient_pattern = None
         self.widget_width = None
         self.widget_height = None
+        
+        # GPU resources
+        self.ctx = None
+        self.program = None
+        self.vao = None
+        self.vbo = None
+        self.texture = None
+        self.fbo = None
+        self.initialized = False
+        self.gpu_failed = False
+        self.use_gpu = MODERNGL_AVAILABLE
 
-    def initialize(self, widget):
-        """Initialize calculations that only need to be done once."""
+    def initialize_gpu(self, widget):
+        """Initialize GPU resources for rendering."""
+        if self.initialized or self.gpu_failed or not self.use_gpu:
+            return
+            
+        try:
+            self.widget_width = widget.get_allocated_width()
+            self.widget_height = widget.get_allocated_height()
+            
+            # Try to create ModernGL context with different backends
+            self.ctx = None
+            
+            # Try different context creation methods
+            try:
+                # Method 1: Try to create standalone context
+                self.ctx = moderngl.create_context(standalone=True)
+                print("Created standalone ModernGL context")
+            except Exception as e:
+                print(f"Standalone context failed: {e}")
+                try:
+                    # Method 2: Try to create context from existing OpenGL context
+                    self.ctx = moderngl.create_context()
+                    print("Created ModernGL context from existing OpenGL")
+                except Exception as e2:
+                    print(f"Regular context creation failed: {e2}")
+                    # Method 3: Try with require=False for compatibility
+                    try:
+                        self.ctx = moderngl.create_context(require=330)
+                        print("Created ModernGL context with OpenGL 3.3 requirement")
+                    except Exception as e3:
+                        print(f"OpenGL 3.3 context failed: {e3}")
+                        raise RuntimeError("All ModernGL context creation methods failed")
+            
+            if self.ctx is None:
+                raise RuntimeError("Failed to create ModernGL context")
+                
+            print(f"ModernGL context info: {self.ctx.info}")
+            
+            # Continue with shader setup...
+            self._setup_shaders()
+            self._setup_buffers()
+            
+            self.initialized = True
+            print("GPU initialization successful")
+            
+        except Exception as e:
+            print(f"GPU initialization failed: {e}")
+            self.gpu_failed = True
+            self.use_gpu = False
+            # Fall back to CPU rendering
+            self._initialize_cpu_fallback(widget)
+
+    def _setup_shaders(self):
+        """Set up GPU shaders."""
+        # Vertex shader for bar rendering
+        # aka. wizard magic.
+        # shaders scare me
+        vertex_shader = """
+        #version 330 core
+        
+        layout(location = 0) in vec2 position;
+        layout(location = 1) in float height;
+        layout(location = 2) in float bar_index;
+        
+        uniform float widget_width;
+        uniform float widget_height;
+        uniform int number_of_bars;
+        uniform bool is_mirrored;
+        
+        out float v_height;
+        out float v_bar_index;
+        out vec2 v_position;
+        
+        void main() {
+            float bar_width = widget_width / (number_of_bars * 2.0);
+            float x_offset = bar_index * bar_width;
+            
+            // Calculate mirrored position if needed
+            float final_x = is_mirrored ? (number_of_bars * 2.0 - bar_index) * bar_width : x_offset;
+            
+            vec2 final_pos = vec2(final_x + position.x * bar_width, 
+                                position.y * widget_height * height);
+            
+            // Convert to normalized device coordinates
+            gl_Position = vec4((final_pos.x / widget_width) * 2.0 - 1.0, 
+                              1.0 - (final_pos.y / widget_height) * 2.0, 
+                              0.0, 1.0);
+            
+            v_height = height;
+            v_bar_index = bar_index;
+            v_position = final_pos;
+        }
+        """
+        
+        # Fragment shader with gradient support
+        fragment_shader = """
+        #version 330 core
+        
+        in float v_height;
+        in float v_bar_index;
+        in vec2 v_position;
+        
+        uniform bool use_gradient;
+        uniform vec4 solid_color;
+        uniform vec4 gradient_colors[16];  // Support up to 16 gradient colors
+        uniform int num_gradient_colors;
+        uniform vec4 gradient_points;  // x1, y1, x2, y2
+        uniform float widget_height;
+        
+        out vec4 fragment_color;
+        
+        void main() {
+            if (use_gradient && num_gradient_colors > 1) {
+                // Calculate gradient position based on fragment position
+                float gradient_t = (v_position.y - gradient_points.y * widget_height) / 
+                                 ((gradient_points.w - gradient_points.y) * widget_height);
+                gradient_t = clamp(gradient_t, 0.0, 1.0);
+                
+                // Interpolate between gradient colors
+                float color_step = 1.0 / float(num_gradient_colors - 1);
+                int color_index = int(gradient_t / color_step);
+                color_index = min(color_index, num_gradient_colors - 2);
+                
+                float local_t = (gradient_t - float(color_index) * color_step) / color_step;
+                
+                fragment_color = mix(gradient_colors[color_index], 
+                                   gradient_colors[color_index + 1], 
+                                   local_t);
+            } else {
+                fragment_color = solid_color;
+            }
+        }
+        """
+        
+        # Create shader program
+        self.program = self.ctx.program(
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader
+        )
+
+    def _setup_buffers(self):
+        """Set up GPU buffers."""
+        # Create vertex buffer for a single quad (will be instanced for each bar)
+        vertices = np.array([
+            # Position (x, y)
+            0.0, 0.0,  # Bottom-left
+            1.0, 0.0,  # Bottom-right
+            1.0, 1.0,  # Top-right
+            0.0, 1.0,  # Top-left
+        ], dtype=np.float32)
+        
+        indices = np.array([0, 1, 2, 0, 2, 3], dtype=np.uint32)
+        
+        self.vbo = self.ctx.buffer(vertices.tobytes())
+        self.ibo = self.ctx.buffer(indices.tobytes())
+        
+        # Create framebuffer for rendering to texture
+        self.texture = self.ctx.texture((self.widget_width, self.widget_height), 4)
+        self.fbo = self.ctx.framebuffer(self.texture)
+
+    
+
+    #note: I have not tested this yet so it might just break
+    #I also might never test it becuase I dont feel like it
+    def _initialize_cpu_fallback(self, widget):
+        """Initialize CPU fallback rendering."""
         self.widget_width = widget.get_allocated_width()
         self.widget_height = widget.get_allocated_height()
         self.bar_width = self.widget_width / (self.number_of_bars * 2)
@@ -50,24 +231,168 @@ class LinesVisualizer:
                 stop_position = i / (self.num_colors - 1)  # Normalize between 0 and 1
                 self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
 
+    def update_gpu_data(self):
+        #memory bus go burrr
+        """Upload bar height data to GPU."""
+        if not self.initialized or self.sample is None:
+            return
+            
+        # Prepare instance data for each bar
+        instance_data = []
+        for i, height in enumerate(self.sample):
+            if i < self.number_of_bars:
+                # Left side bars
+                instance_data.extend([height, float(self.number_of_bars - i)])
+            else:
+                # Right side bars  
+                instance_data.extend([height, float(i)])
+        
+        instance_array = np.array(instance_data, dtype=np.float32)
+        
+        # Update or create instance buffer
+        if hasattr(self, 'instance_vbo'):
+            self.instance_vbo.write(instance_array.tobytes())
+        else:
+            self.instance_vbo = self.ctx.buffer(instance_array.tobytes())
+            
+            # Create VAO with instanced rendering
+            self.vao = self.ctx.vertex_array(
+                self.program,
+                [(self.vbo, '2f', 'position'),
+                 (self.instance_vbo, '1f 1f/i', 'height', 'bar_index')],
+                self.ibo
+            )
+
+    def render_to_texture(self):
+        """Render bars to GPU texture."""
+        if not self.initialized:
+            return None
+            
+        # Bind framebuffer and clear
+        self.fbo.use()
+        self.ctx.viewport = (0, 0, self.widget_width, self.widget_height)
+        self.ctx.clear(*self.background_col)
+        
+        if self.sample is None:
+            return self.texture
+        
+        # Set uniforms
+        self.program['widget_width'] = float(self.widget_width)
+        self.program['widget_height'] = float(self.widget_height) 
+        self.program['number_of_bars'] = self.number_of_bars
+        
+        if self.gradient and self.colors_list:
+            self.program['use_gradient'] = True
+            self.program['num_gradient_colors'] = min(len(self.colors_list), 16)
+            
+            # Upload gradient colors
+            for i, color in enumerate(self.colors_list[:16]):
+                self.program[f'gradient_colors[{i}]'] = color
+                
+            # Set gradient points
+            if self.gradient_points and len(self.gradient_points) >= 4:
+                gp = [float(x) for x in self.gradient_points[:4]]
+                self.program['gradient_points'] = tuple(gp)
+            else:
+                self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+        else:
+            self.program['use_gradient'] = False
+            self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
+        
+        # Update GPU data and render
+        self.update_gpu_data()
+        
+        if self.vao:
+            if self.fill:
+                self.ctx.enable(moderngl.BLEND)
+                self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+            
+            # Render all bars in one draw call using instancing
+            self.vao.render(instances=len(self.sample))
+        
+        return self.texture
+
+    def initialize(self, widget):
+        """Initialize calculations that only need to be done once."""
+        if self.use_gpu and not self.gpu_failed:
+            # Try GPU initialization first
+            self.initialize_gpu(widget)
+        
+        if not self.use_gpu or self.gpu_failed:
+            # Fall back to CPU initialization
+            self._initialize_cpu_fallback(widget)
+
     def on_draw(self, widget, cr):
+        # Check if we need to reinitialize
+        if (not self.initialized or 
+            self.widget_width != widget.get_allocated_width() or 
+            self.widget_height != widget.get_allocated_height()):
+            self.initialize(widget)
+        
+        # Try GPU rendering first if available
+        if self.use_gpu and not self.gpu_failed and self.initialized:
+            try:
+                gpu_texture = self.render_to_texture()
+                
+                if gpu_texture is not None:
+                    # Read GPU texture data
+                    texture_data = gpu_texture.read()
+                    
+                    # Create Cairo surface from GPU texture
+                    cairo_surface = cairo.ImageSurface.create_for_data(
+                        bytearray(texture_data), 
+                        cairo.FORMAT_ARGB32,
+                        self.widget_width, 
+                        self.widget_height
+                    )
+                    
+                    # Draw the GPU-rendered texture to Cairo context
+                    cr.set_source_surface(cairo_surface, 0, 0)
+                    cr.paint()
+                    return
+            except Exception as e:
+                print(f"GPU rendering failed, falling back to CPU: {e}")
+                self.gpu_failed = True
+                self.use_gpu = False
+        
+        # Fallback to CPU rendering
+        self._fallback_cpu_render(widget, cr)
+
+    #untested
+    def _fallback_cpu_render(self, widget, cr):
+        """Fallback to CPU rendering if GPU fails."""
         # Set the transparent background
         cr.set_source_rgba(*self.background_col)
         cr.paint()
 
-        # Reinitialize if widget dimensions have changed
-        if (self.widget_width != widget.get_allocated_width() or 
-            self.widget_height != widget.get_allocated_height()):
-            self.initialize(widget)
-
-        # Draw the lines visualization
+        # Draw the bars visualization using CPU
         if self.sample is not None:
+            bar_width = self.widget_width / (self.number_of_bars * 2)
+            
             if not self.gradient:
                 cr.set_source_rgba(*self.color)
             else:
-                cr.set_source(self.gradient_pattern)
+                # Create gradient pattern for CPU fallback
+                if self.gradient_points and len(self.gradient_points) >= 4:
+                    gp = [float(x) for x in self.gradient_points[:4]]
+                else:
+                    gp = [0, 0, 1, 1]
+                    
+                gradient_pattern = cairo.LinearGradient(
+                    self.widget_height * gp[0],
+                    self.widget_height * gp[1], 
+                    self.widget_height * gp[2],
+                    self.widget_height * gp[3]
+                )
+                
+                for i, color in enumerate(self.colors_list):
+                    stop_position = i / (len(self.colors_list) - 1)
+                    gradient_pattern.add_color_stop_rgba(stop_position, *color)
+                
+                cr.set_source(gradient_pattern)
 
-            cr.set_line_width(2)
+            # this is bad and awful and I hate it
+            # might rewrite this later but we have cool gpu shaders now so I might not
             for i, value in enumerate(self.sample):
                 if i < self.number_of_bars:
                     i = (self.number_of_bars - i)
@@ -75,13 +400,36 @@ class LinesVisualizer:
                 else:
                     flip = 1
                 if i == self.number_of_bars:
-                    cr.move_to(i * self.bar_width, self.widget_height * (1 - self.sample[0]))
-                cr.line_to((i + flip) * self.bar_width, self.widget_height * (1 - value))
+                    cr.move_to(i * bar_width, self.widget_height * (1 - self.sample[0]))
+                cr.line_to(i * bar_width, self.widget_height * (1 - value))
+                cr.line_to((i + flip) * bar_width, self.widget_height * (1 - value))
+
                 if i == 1 or i == self.number_of_bars * 2 - 1:
-                    cr.line_to((i + flip) * self.bar_width, self.widget_height)
-                    cr.line_to(self.widget_width / 2, self.widget_height)
+                    cr.line_to((i + flip) * bar_width, self.widget_height)
+                    cr.line_to(widget.get_allocated_width() / 2, self.widget_height)
 
             if self.fill:
                 cr.fill()
             else:
                 cr.stroke()
+
+    #this looks like it might cause a memory leak.
+    #but I dont know enough about openGL and modernGL to know if it does
+    def cleanup(self):
+        """Clean up GPU resources."""
+        if self.ctx:
+            try:
+                self.ctx.release()
+            except:
+                pass  # Ignore cleanup errors
+
+    def get_performance_info(self):
+        #I need to make the debug flag work so this wont spam the console
+        """Return information about GPU acceleration status."""
+        return {
+            "moderngl_available": MODERNGL_AVAILABLE,
+            "gpu_initialized": self.initialized and self.use_gpu and not self.gpu_failed,
+            "gpu_failed": self.gpu_failed,
+            "current_mode": "GPU" if (self.use_gpu and not self.gpu_failed) else "CPU",
+            "context_info": str(self.ctx.info) if self.ctx else "No context"
+        }
