@@ -90,8 +90,6 @@ class BarsVisualizer:
     def _setup_shaders(self):
         """Set up GPU shaders."""
         # Vertex shader for bar rendering
-        # aka. wizard magic.
-        # shaders scare me
         vertex_shader = """
         #version 330 core
         
@@ -102,7 +100,6 @@ class BarsVisualizer:
         uniform float widget_width;
         uniform float widget_height;
         uniform int number_of_bars;
-        uniform bool is_mirrored;
         
         out float v_height;
         out float v_bar_index;
@@ -112,10 +109,7 @@ class BarsVisualizer:
             float bar_width = widget_width / (number_of_bars * 2.0);
             float x_offset = bar_index * bar_width;
             
-            // Calculate mirrored position if needed
-            float final_x = is_mirrored ? (number_of_bars * 2.0 - bar_index) * bar_width : x_offset;
-            
-            vec2 final_pos = vec2(final_x + position.x * bar_width, 
+            vec2 final_pos = vec2(x_offset + position.x * bar_width, 
                                 position.y * widget_height * height);
             
             // Convert to normalized device coordinates
@@ -139,22 +133,72 @@ class BarsVisualizer:
         
         uniform bool use_gradient;
         uniform vec4 solid_color;
-        uniform vec4 gradient_start;
-        uniform vec4 gradient_end;
-        uniform vec4 gradient_points;  // x1, y1, x2, y2
+        uniform int num_gradient_colors;
+        uniform float widget_width;
         uniform float widget_height;
+        uniform vec4 gradient_points;  // x1, y1, x2, y2
+        
+        // Simple approach: pass up to 8 gradient colors as individual uniforms
+        uniform vec4 gradient_color0;
+        uniform vec4 gradient_color1;
+        uniform vec4 gradient_color2;
+        uniform vec4 gradient_color3;
+        uniform vec4 gradient_color4;
+        uniform vec4 gradient_color5;
+        uniform vec4 gradient_color6;
+        uniform vec4 gradient_color7;
         
         out vec4 fragment_color;
         
+        vec4 get_gradient_color(int index) {
+            if (index == 0) return gradient_color0;
+            if (index == 1) return gradient_color1;
+            if (index == 2) return gradient_color2;
+            if (index == 3) return gradient_color3;
+            if (index == 4) return gradient_color4;
+            if (index == 5) return gradient_color5;
+            if (index == 6) return gradient_color6;
+            if (index == 7) return gradient_color7;
+            return vec4(1.0, 0.0, 1.0, 1.0); // Magenta for error
+        }
+        
         void main() {
-            if (use_gradient) {
-                // Calculate gradient position based on fragment position
-                float gradient_t = (v_position.y - gradient_points.y * widget_height) / 
-                                 ((gradient_points.w - gradient_points.y) * widget_height);
+            if (use_gradient && num_gradient_colors > 1) {
+                // Calculate gradient direction based on gradient_points
+                // gradient_points = (x1, y1, x2, y2) in normalized coordinates
+                vec2 grad_start = vec2(gradient_points.x * widget_width, gradient_points.y * widget_height);
+                vec2 grad_end = vec2(gradient_points.z * widget_width, gradient_points.w * widget_height);
+                
+                // Current fragment position in screen coordinates
+                vec2 frag_pos = vec2(gl_FragCoord.x, widget_height - gl_FragCoord.y);
+                
+                // Project fragment position onto gradient line
+                vec2 grad_vec = grad_end - grad_start;
+                vec2 frag_vec = frag_pos - grad_start;
+                
+                float grad_length_sq = dot(grad_vec, grad_vec);
+                float gradient_t = 0.0;
+                
+                if (grad_length_sq > 0.0) {
+                    gradient_t = dot(frag_vec, grad_vec) / grad_length_sq;
+                }
+                
                 gradient_t = clamp(gradient_t, 0.0, 1.0);
                 
-                // Simple two-color gradient interpolation
-                fragment_color = mix(gradient_start, gradient_end, gradient_t);
+                // Calculate which segment we're in
+                float segment_size = 1.0 / float(num_gradient_colors - 1);
+                int segment = int(gradient_t / segment_size);
+                segment = min(segment, num_gradient_colors - 2);
+                
+                // Calculate local t within the segment
+                float local_t = (gradient_t - float(segment) * segment_size) / segment_size;
+                
+                // Get the two colors to interpolate between
+                vec4 color1 = get_gradient_color(segment);
+                vec4 color2 = get_gradient_color(segment + 1);
+                
+                // Interpolate
+                fragment_color = mix(color1, color2, local_t);
             } else {
                 fragment_color = solid_color;
             }
@@ -224,20 +268,27 @@ class BarsVisualizer:
                 self.gradient_pattern.add_color_stop_rgba(stop_position, *color)
 
     def update_gpu_data(self):
-        #memory bus go burrr
         """Upload bar height data to GPU."""
         if not self.initialized or self.sample is None:
             return
             
-        # Prepare instance data for each bar
+        # Prepare instance data for each bar - create mirrored layout
         instance_data = []
-        for i, height in enumerate(self.sample):
-            if i < self.number_of_bars:
-                # Left side bars
-                instance_data.extend([height, float(self.number_of_bars - i)])
-            else:
-                # Right side bars  
-                instance_data.extend([height, float(i)])
+        
+        # Left side bars (reversed order)
+        for i in range(self.number_of_bars):
+            if i < len(self.sample):
+                height = self.sample[i]
+                bar_index = float(self.number_of_bars - 1 - i)  # Reverse for left side
+                instance_data.extend([height, bar_index])
+        
+        # Right side bars (normal order)  
+        for i in range(self.number_of_bars):
+            sample_index = self.number_of_bars + i
+            if sample_index < len(self.sample):
+                height = self.sample[sample_index]
+                bar_index = float(self.number_of_bars + i)  # Continue from center
+                instance_data.extend([height, bar_index])
         
         instance_array = np.array(instance_data, dtype=np.float32)
         
@@ -275,20 +326,23 @@ class BarsVisualizer:
         
         if self.gradient and self.colors_list:
             self.program['use_gradient'] = True
+            self.program['num_gradient_colors'] = min(len(self.colors_list), 8)
             
-            # Use first and last colors for simple two-color gradient
-            gradient_start = self.colors_list[0] if len(self.colors_list) > 0 else (1.0, 0.0, 0.0, 1.0)
-            gradient_end = self.colors_list[-1] if len(self.colors_list) > 1 else gradient_start
-            
-            self.program['gradient_start'] = gradient_start
-            self.program['gradient_end'] = gradient_end
-                
             # Set gradient points
             if self.gradient_points and len(self.gradient_points) >= 4:
                 gp = [float(x) for x in self.gradient_points[:4]]
                 self.program['gradient_points'] = tuple(gp)
             else:
                 self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
+            
+            # Set individual gradient color uniforms
+            for i in range(8):
+                if i < len(self.colors_list):
+                    self.program[f'gradient_color{i}'] = self.colors_list[i]
+                else:
+                    # Pad with the last color
+                    last_color = self.colors_list[-1] if self.colors_list else (0.0, 0.0, 0.0, 1.0)
+                    self.program[f'gradient_color{i}'] = last_color
         else:
             self.program['use_gradient'] = False
             self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
@@ -302,7 +356,7 @@ class BarsVisualizer:
                 self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
             
             # Render all bars in one draw call using instancing
-            self.vao.render(instances=len(self.sample))
+            self.vao.render(instances=self.number_of_bars * 2)
         
         return self.texture
 
