@@ -39,44 +39,52 @@ class BarsVisualizer:
 
     def initialize_gpu(self, widget):
         """Initialize GPU resources for rendering."""
-        if self.initialized or self.gpu_failed or not self.use_gpu:
+        if self.gpu_failed or not self.use_gpu:
             return
             
         try:
-            self.widget_width = widget.get_allocated_width()
-            self.widget_height = widget.get_allocated_height()
+            new_width = widget.get_allocated_width()
+            new_height = widget.get_allocated_height()
             
-            # Try to create ModernGL context with different backends
-            self.ctx = None
-            
-            # Try different context creation methods
-            try:
-                # Method 1: Try to create standalone context
-                self.ctx = moderngl.create_context(standalone=True)
-                print("Created standalone ModernGL context")
-            except Exception as e:
-                print(f"Standalone context failed: {e}")
-                try:
-                    # Method 2: Try to create context from existing OpenGL context
-                    self.ctx = moderngl.create_context()
-                    print("Created ModernGL context from existing OpenGL")
-                except Exception as e2:
-                    print(f"Regular context creation failed: {e2}")
-                    # Method 3: Try with require=False for compatibility
-                    try:
-                        self.ctx = moderngl.create_context(require=330)
-                        print("Created ModernGL context with OpenGL 3.3 requirement")
-                    except Exception as e3:
-                        print(f"OpenGL 3.3 context failed: {e3}")
-                        raise RuntimeError("All ModernGL context creation methods failed")
-            
-            if self.ctx is None:
-                raise RuntimeError("Failed to create ModernGL context")
+            # Check if we need to create context or just update size
+            if not self.ctx:
+                # Try to create ModernGL context with different backends
+                self.ctx = None
                 
-            print(f"ModernGL context info: {self.ctx.info}")
+                # Try different context creation methods
+                try:
+                    # Method 1: Try to create standalone context
+                    self.ctx = moderngl.create_context(standalone=True)
+                    print("Created standalone ModernGL context")
+                except Exception as e:
+                    print(f"Standalone context failed: {e}")
+                    try:
+                        # Method 2: Try to create context from existing OpenGL context
+                        self.ctx = moderngl.create_context()
+                        print("Created ModernGL context from existing OpenGL")
+                    except Exception as e2:
+                        print(f"Regular context creation failed: {e2}")
+                        # Method 3: Try with require=False for compatibility
+                        try:
+                            self.ctx = moderngl.create_context(require=330)
+                            print("Created ModernGL context with OpenGL 3.3 requirement")
+                        except Exception as e3:
+                            print(f"OpenGL 3.3 context failed: {e3}")
+                            raise RuntimeError("All ModernGL context creation methods failed")
+                
+                if self.ctx is None:
+                    raise RuntimeError("Failed to create ModernGL context")
+                    
+                print(f"ModernGL context info: {self.ctx.info}")
+                
+                # Setup shaders (only need to do this once)
+                self._setup_shaders(self.config)
             
-            # Continue with shader setup...
-            self._setup_shaders(self.config)
+            # Update dimensions
+            self.widget_width = new_width
+            self.widget_height = new_height
+            
+            # Setup or update buffers with new dimensions
             self._setup_buffers()
             
             self.initialized = True
@@ -117,10 +125,17 @@ class BarsVisualizer:
         
         indices = np.array([0, 1, 2, 0, 2, 3], dtype=np.uint32)
         
-        self.vbo = self.ctx.buffer(vertices.tobytes())
-        self.ibo = self.ctx.buffer(indices.tobytes())
+        # Only create vertex buffer once
+        if not hasattr(self, 'vbo') or self.vbo is None:
+            self.vbo = self.ctx.buffer(vertices.tobytes())
+            self.ibo = self.ctx.buffer(indices.tobytes())
         
-        # Create framebuffer for rendering to texture
+        # Always recreate framebuffer with current dimensions
+        if hasattr(self, 'texture') and self.texture:
+            self.texture.release()
+        if hasattr(self, 'fbo') and self.fbo:
+            self.fbo.release()
+            
         self.texture = self.ctx.texture((self.widget_width, self.widget_height), 4)
         self.fbo = self.ctx.framebuffer(self.texture)
 
@@ -289,10 +304,19 @@ class BarsVisualizer:
             self._initialize_cpu_fallback(widget)
 
     def on_draw(self, widget, cr):
-        # Check if we need to reinitialize
+        current_width = widget.get_allocated_width()
+        current_height = widget.get_allocated_height()
+        
+        # Check if we need to reinitialize due to size change
         if (not self.initialized or 
-            self.widget_width != widget.get_allocated_width() or 
-            self.widget_height != widget.get_allocated_height()):
+            self.widget_width != current_width or 
+            self.widget_height != current_height):
+            
+            # Reset initialized flag so GPU resources are properly updated
+            if (self.widget_width != current_width or 
+                self.widget_height != current_height):
+                self.initialized = False
+                
             self.initialize(widget)
         
         # Try GPU rendering first if available
@@ -383,9 +407,28 @@ class BarsVisualizer:
     #but I dont know enough about openGL and modernGL to know if it does
     def cleanup(self):
         """Clean up GPU resources."""
+        if hasattr(self, 'texture') and self.texture:
+            self.texture.release()
+            self.texture = None
+        if hasattr(self, 'fbo') and self.fbo:
+            self.fbo.release()
+            self.fbo = None
+        if hasattr(self, 'vao') and self.vao:
+            self.vao.release()
+            self.vao = None
+        if hasattr(self, 'vbo') and self.vbo:
+            self.vbo.release()
+            self.vbo = None
+        if hasattr(self, 'ibo') and self.ibo:
+            self.ibo.release()
+            self.ibo = None
+        if hasattr(self, 'instance_vbo') and self.instance_vbo:
+            self.instance_vbo.release()
+            self.instance_vbo = None
         if self.ctx:
             try:
                 self.ctx.release()
+                self.ctx = None
             except:
                 pass  # Ignore cleanup errors
 
