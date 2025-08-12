@@ -102,9 +102,13 @@ def update_info(self , scrobble_enabled , network):
 
     if scrobble_enabled and self.new_song:
         try:
+            print(f"Attempting to scrobble: {artist_name[0]} - {song_name} - {album_name}")
             scrobble_track(network,artist_name,song_name , album_name , metadata.get('mpris:length')/1000000)
         except Exception as e:
             print(f"Failed to scrobble: {e}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            traceback.print_exc()
 
 
     self.new_song = False
