@@ -1,5 +1,7 @@
 import configparser
-
+#this is run every time the program is run
+#it sould only be running when there is no config file
+#TODO: fix that ^
 
 def create_config():
     config = configparser.ConfigParser()
@@ -15,17 +17,16 @@ def create_config():
                           'buffer_size' : 1200 , 
                           'input_source' : 'Auto' , 
                           'bars' : 50 , 
-                          'RGBA' : True ,
-                          'RGB255' : False,
                           'background_col' : '0,0,0,0.5' ,
-                          'color1' : '0,1,1,1' ,
+                          'color1' : '0,1,1,1' , 
                           'gradient' : True , 
                           'color_gradient' : '1,0,0,1,0,1,0,1,0,0,1,1', 
                           'gradient_points' : '1,1,1,1',
-                          'vis_type' : 'bars' ,
-                          'flip_vector' : '1 , -1', 
+                          'vis_type' : 'bars' , 
                           'fill' : True , 
-                          'scrobble' : False}
+                          'scrobble' : False,
+                          'CustomShader' : False,
+                          'FragmentShader' : 'src/visualizers/shaders/custom_fragment.glsl'}
     # Write the configuration to a file
     with open('config_example.ini', 'w') as configfile:
         config.write(configfile)

@@ -1,6 +1,6 @@
 from gi.repository import Gio
 
-def on_pause_button_clicked(source, button):
+def on_pause_button_clicked(source, button): #TODO: remove all of the random unused parameters that copilot put in here
     if source:
         source.call_sync(
             "org.mpris.MediaPlayer2.Player.PlayPause",  # D-Bus method to call
