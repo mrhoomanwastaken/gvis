@@ -19,6 +19,8 @@ from src.visualizers.lines import LinesVisualizer
 from src.mpris_service import get_mpris_service
 from src.update_info import update_info, update_progress
 from src.cava.run_cava import run_cava
+import time
+start_time = time.time()
 
 
 if getattr(sys, 'frozen', False):
@@ -206,7 +208,8 @@ class MyWindow(Gtk.Window):
             'num_colors': num_colors if gradient else None,
             'gradient_points': gradient_points if gradient else None,
             'color': color if not gradient else None,
-            'config': gvis_config  # Pass the full config for shader loading
+            'config': gvis_config,  # Pass the full config for shader loading
+            'start_time': start_time
         }
         
         if vis_type == 'bars':

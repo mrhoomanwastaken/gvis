@@ -3,6 +3,7 @@ Visualizers package for gvis.
 Contains different visualization types and shared shader loading utilities.
 """
 
+from time import time
 from .bars import BarsVisualizer
 from .lines import LinesVisualizer
 from .shaders import (
@@ -14,6 +15,10 @@ from .shaders import (
     BARS_VERTEX_SHADER,
     LINES_VERTEX_SHADER
 )
+from .common import (
+    Set_uniforms
+)
+
 
 __all__ = [
     'BarsVisualizer',
@@ -24,5 +29,7 @@ __all__ = [
     'load_shader',
     'COMMON_FRAGMENT_SHADER',
     'BARS_VERTEX_SHADER',
-    'LINES_VERTEX_SHADER'
+    'LINES_VERTEX_SHADER',
+    'Set_uniforms',
+    'start_time'
 ]

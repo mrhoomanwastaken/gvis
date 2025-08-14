@@ -1,59 +1,86 @@
+// Mirror-like "Happy Accident" Shader (CC0)
+// A shiny reflective variation of a raymarched fractal accident
+// ATTRIBUTION: Shader techniques inspired by (alphabetical):
+//   @byt3_m3chanic
+//   @FabriceNeyrat2
+//   @iq
+//   @shane
+//   @XorDev
+//   + many more
 #version 330 core
+uniform float iTime; // Time in seconds
+uniform vec2 iResolution; // Screen resolution
+uniform float avg_height; // Average height of the bars
 
-in float v_height;
-in vec2 v_position;
+float map(vec3 p) {
+    // Domain repetition
+    p = abs(fract(p) - 0.5);
+    // Cylinder + planes SDF
+    return abs(min(length(p.xy) - 0.175, min(p.x, p.y) + 1e-3)) + 1e-3;
+}
 
-uniform bool use_gradient;
-uniform vec4 solid_color;
-uniform int num_gradient_colors;
-uniform float widget_width;
-uniform float widget_height;
-// gradient_points not needed for height-based gradient
+vec3 estimateNormal(vec3 p) {
+    float eps = 0.001;
+    return normalize(vec3(
+        map(p + vec3(eps, 0.0, 0.0)) - map(p - vec3(eps, 0.0, 0.0)),
+        map(p + vec3(0.0, eps, 0.0)) - map(p - vec3(0.0, eps, 0.0)),
+        map(p + vec3(0.0, 0.0, eps)) - map(p - vec3(0.0, 0.0, eps))
+    ));
+}
 
-// Simple approach: pass up to 8 gradient colors as individual uniforms
-uniform vec4 gradient_color0;
-uniform vec4 gradient_color1;
-uniform vec4 gradient_color2;
-uniform vec4 gradient_color3;
-uniform vec4 gradient_color4;
-uniform vec4 gradient_color5;
-uniform vec4 gradient_color6;
-uniform vec4 gradient_color7;
+void mainImage(out vec4 O, in vec2 C) {
+    vec2 r = iResolution.xy;
+    vec2 uv = (C - 0.5 * r) / r.y;
 
-out vec4 fragment_color;
+    float t = iTime + avg_height; // Use average height for time offset
+    float z = fract(dot(C, sin(C))) - 0.5;
+    vec4 col = vec4(0.0);
+    vec4 p;
 
-vec4 get_gradient_color(int index) {
-    if (index == 0) return gradient_color0;
-    if (index == 1) return gradient_color1;
-    if (index == 2) return gradient_color2;
-    if (index == 3) return gradient_color3;
-    if (index == 4) return gradient_color4;
-    if (index == 5) return gradient_color5;
-    if (index == 6) return gradient_color6;
-    if (index == 7) return gradient_color7;
-    return vec4(1.0, 0.0, 1.0, 1.0); // Magenta for error
+    for (float i = 0.0; i < 77.0; i++) {
+        // Ray direction
+        p = vec4(z * normalize(vec3(C - 0.7 * r, r.y)), 0.1 * t);
+        p.z += t;
+
+        vec4 q = p;
+
+        // Apply "bugged" rotation matrices for glitchy fractal distortion
+        p.xy *= mat2(cos(2.0 + q.z + vec4(0,11,33,0)));
+        p.xy *= mat2(cos(q + vec4(0,11,33,0)));
+
+        // Distance estimation
+        float d = map(p.xyz);
+
+        // Estimate lighting
+        vec3 pos = p.xyz;
+        vec3 lightDir = normalize(vec3(0.3, 0.5, 1.0));
+        vec3 viewDir = normalize(vec3(uv, 1.0));
+        vec3 n = estimateNormal(pos);
+        vec3 reflectDir = reflect(viewDir, n);
+
+        // Fake environment reflection (sky blue + fade to white)
+        vec3 envColor = mix(vec3(0.8, 0.4, 0.8), vec3(1.0), 0.5 + 0.5 * reflectDir.y);
+
+        // Specular highlight
+        float spec = pow(max(dot(reflectDir, lightDir), 0.0), 32.0);
+
+        // Funky palette color using original method
+        vec4 baseColor = (1.0 + sin(0.5 * q.z + length(p.xyz - q.xyz) + vec4(0,4,3,6)))
+                       / (0.5 + 2.0 * dot(q.xy, q.xy));
+
+        // Combine base color + environment reflection + specular highlight
+        vec3 finalColor = baseColor.rgb * 0.1 + envColor * 0.9 + vec3(spec) * 1.2;
+
+        // Brightness weighted accumulation
+        col.rgb += finalColor / d;
+
+        z += 0.6 * d;
+    }
+
+    // Compress brightness range
+    O = vec4(tan(col.rgb / 2e4), 1.0);
 }
 
 void main() {
-    if (use_gradient && num_gradient_colors > 1) {
-        // Use v_height directly for height-based gradient instead of position-based
-        float gradient_t = clamp(v_height, 0.0, 1.0);
-        
-        // Use the exact same segment calculation as the working position-based version
-        float segment_size = 1.0 / float(num_gradient_colors - 1);
-        int segment = int(gradient_t / segment_size);
-        segment = min(segment, num_gradient_colors - 2);
-        
-        // Calculate local t within the segment
-        float local_t = (gradient_t - float(segment) * segment_size) / segment_size;
-        
-        // Get the two colors to interpolate between (same as working version)
-        vec4 color1 = get_gradient_color(segment);
-        vec4 color2 = get_gradient_color(segment + 1);
-        
-        // Interpolate
-        fragment_color = mix(color1, color2, local_t);
-    } else {
-        fragment_color = solid_color;
-    }
+    mainImage(gl_FragColor, gl_FragCoord.xy);
 }
