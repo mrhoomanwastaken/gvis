@@ -1,3 +1,22 @@
+#!/usr/bin/env python3
+"""
+gvis - A music visualizer based on cavacore and built with Gtk+3
+Copyright (C) 2025 mrhooman
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import os
 import threading
 import gi
@@ -19,6 +38,8 @@ from src.visualizers.lines import LinesVisualizer
 from src.mpris_service import get_mpris_service
 from src.update_info import update_info, update_progress
 from src.cava.run_cava import run_cava
+import time
+start_time = time.time()
 
 
 if getattr(sys, 'frozen', False):
@@ -206,7 +227,8 @@ class MyWindow(Gtk.Window):
             'num_colors': num_colors if gradient else None,
             'gradient_points': gradient_points if gradient else None,
             'color': color if not gradient else None,
-            'config': gvis_config  # Pass the full config for shader loading
+            'config': gvis_config,  # Pass the full config for shader loading
+            'start_time': start_time
         }
         
         if vis_type == 'bars':

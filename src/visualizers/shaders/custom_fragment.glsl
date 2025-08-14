@@ -1,59 +1,94 @@
+// EXAMPLE SHADER FILE - NOT INCLUDED IN COMPILED DISTRIBUTIONS
+// Originally from https://www.shadertoy.com/view/tsXBzS
+// Modified to fit the gvis framework
+//
+// This file is provided as an EXAMPLE ONLY to demonstrate custom shader capabilities.
+// It is NOT part of the main GPL-3.0 licensed gvis project.
+//
+/**
+ * This code is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+ * See https://creativecommons.org/licenses/by-nc-sa/3.0/ for details.
+ * 
+ * If you use this shader, you must comply with the CC BY-NC-SA 3.0 license terms
+ * separately from the main gvis project license.
+ */
+
 #version 330 core
 
-in float v_height;
-in vec2 v_position;
+uniform float iTime;
+uniform vec2 iResolution;
+uniform float avg_height;
 
-uniform bool use_gradient;
-uniform vec4 solid_color;
-uniform int num_gradient_colors;
-uniform float widget_width;
-uniform float widget_height;
-// gradient_points not needed for height-based gradient
 
-// Simple approach: pass up to 8 gradient colors as individual uniforms
-uniform vec4 gradient_color0;
-uniform vec4 gradient_color1;
-uniform vec4 gradient_color2;
-uniform vec4 gradient_color3;
-uniform vec4 gradient_color4;
-uniform vec4 gradient_color5;
-uniform vec4 gradient_color6;
-uniform vec4 gradient_color7;
-
-out vec4 fragment_color;
-
-vec4 get_gradient_color(int index) {
-    if (index == 0) return gradient_color0;
-    if (index == 1) return gradient_color1;
-    if (index == 2) return gradient_color2;
-    if (index == 3) return gradient_color3;
-    if (index == 4) return gradient_color4;
-    if (index == 5) return gradient_color5;
-    if (index == 6) return gradient_color6;
-    if (index == 7) return gradient_color7;
-    return vec4(1.0, 0.0, 1.0, 1.0); // Magenta for error
+vec3 palette(float d){
+	return mix(vec3(0.2,0.7,0.9),vec3(1.,0.,1.),d);
 }
 
-void main() {
-    if (use_gradient && num_gradient_colors > 1) {
-        // Use v_height directly for height-based gradient instead of position-based
-        float gradient_t = clamp(v_height, 0.0, 1.0);
-        
-        // Use the exact same segment calculation as the working position-based version
-        float segment_size = 1.0 / float(num_gradient_colors - 1);
-        int segment = int(gradient_t / segment_size);
-        segment = min(segment, num_gradient_colors - 2);
-        
-        // Calculate local t within the segment
-        float local_t = (gradient_t - float(segment) * segment_size) / segment_size;
-        
-        // Get the two colors to interpolate between (same as working version)
-        vec4 color1 = get_gradient_color(segment);
-        vec4 color2 = get_gradient_color(segment + 1);
-        
-        // Interpolate
-        fragment_color = mix(color1, color2, local_t);
-    } else {
-        fragment_color = solid_color;
+vec2 rotate(vec2 p,float a){
+	float c = cos(a);
+    float s = sin(a);
+    return p*mat2(c,s,-s,c);
+}
+
+float map(vec3 p){
+    for( int i = 0; i<8; ++i){
+        float t = iTime*0.2;
+        p.xz =rotate(p.xz,t);
+        p.xy =rotate(p.xy,t*1.89);
+        p.xz = abs(p.xz);
+        p.xz-=avg_height;
+	}
+	return dot(sign(p),p)/5.;
+}
+
+vec4 rm (vec3 ro, vec3 rd){
+    float t = 0.;
+    vec3 col = vec3(0.);
+    float d;
+    for(float i =0.; i<64.; i++){
+		vec3 p = ro + rd*t;
+        d = map(p)*.5;
+        if(d<0.02){
+            break;
+        }
+        if(d>100.){
+        	break;
+        }
+        //col+=vec3(0.6,0.8,0.8)/(400.*(d));
+        col+=palette(length(p)*.1)/(400.*(d));
+        t+=d;
     }
+    return vec4(col,1./(d*100.));
 }
+
+out vec4 fragColor;
+
+void main()
+{
+    vec2 fragCoord = gl_FragCoord.xy;
+    vec2 uv = (fragCoord-(iResolution.xy/2.))/iResolution.x;
+    uv.y += -0.2;  // Shift view down to make fractal appear lower
+	vec3 ro = vec3(0.,0.,-50.);
+    ro.xz = rotate(ro.xz,iTime);
+    vec3 cf = normalize(-ro);
+    vec3 cs = normalize(cross(cf,vec3(0.,1.,0.)));
+    vec3 cu = normalize(cross(cf,cs));
+    
+    vec3 uuv = ro+cf*3. + uv.x*cs + uv.y*cu;
+    
+    vec3 rd = normalize(uuv-ro);
+    
+    vec4 col = rm(ro,rd);
+    
+    
+    fragColor = col;
+    fragColor.a = 1.0;
+}
+
+/** SHADERDATA
+{
+	"title": "fractal pyramid",
+	"description": "",
+	"model": "car"
+}
+*/

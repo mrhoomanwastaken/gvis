@@ -1,0 +1,48 @@
+gvis - A music visualizer based on cavacore and built with Gtk+3
+Copyright (C) 2025 mrhooman
+
+This project incorporates components from the following third-party sources:
+
+================================================================================
+
+libcavacore.so
+Copyright (c) 2015 Karl Stavestrand <karl@stavestrand.no>
+Licensed under the MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+
+This project also uses various Python packages as dependencies. Please refer
+to the requirements.txt file for a complete list of dependencies and their
+respective licenses.
+
+================================================================================
+
+EXAMPLE SHADER FILES:
+
+The file src/visualizers/shaders/custom_fragment.glsl is provided as an EXAMPLE
+ONLY and is not included in compiled distributions. It contains code originally
+from https://www.shadertoy.com/view/tsXBzS which is licensed under Creative 
+Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+
+This example file is provided for educational purposes and to demonstrate
+custom shader capabilities. Users who wish to use this shader must comply
+with its CC BY-NC-SA 3.0 license terms separately from the main GPL-3.0
+licensed project.

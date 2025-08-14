@@ -65,3 +65,18 @@ If it works without errors, you can run it using this command (or by clicking it
 
 # Note
 busy work like docstrings are done by copilot. I do check what it outputs but I might miss some things. If you see something wrong with the docstrings or comments please tell me.
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+### Third-Party Components
+
+- **libcavacore.so** (in `src/cava/`): Licensed under MIT License by Karl Stavestrand
+- **All other files**: Licensed under GPL-3.0 unless otherwise noted
+
+## Copyright
+
+Copyright (C) 2025 mrhooman
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.

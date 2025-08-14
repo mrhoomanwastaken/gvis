@@ -1,6 +1,25 @@
+"""
+gvis - Lines visualizer
+Copyright (C) 2025 mrhooman
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import cairo
 import numpy as np
 from .shaders import COMMON_FRAGMENT_SHADER, LINES_VERTEX_SHADER, get_shaders_for_config
+from .common import Set_uniforms
 
 try:
     import moderngl
@@ -10,7 +29,7 @@ except ImportError:
     print("ModernGL not available - falling back to CPU rendering")
 
 class LinesVisualizer:
-    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, gradient_points=None, color=None, config=None):
+    def __init__(self, background_col, number_of_bars, fill, gradient, colors_list=None, num_colors=None, gradient_points=None, color=None, config=None, start_time=None):
         self.background_col = background_col
         self.number_of_bars = number_of_bars
         self.fill = fill
@@ -25,7 +44,8 @@ class LinesVisualizer:
         self.gradient_pattern = None
         self.widget_width = None
         self.widget_height = None
-        
+        self.start_time = start_time
+
         # GPU resources
         self.ctx = None
         self.program = None
@@ -78,7 +98,6 @@ class LinesVisualizer:
                 if self.ctx is None:
                     raise RuntimeError("Failed to create ModernGL context")
                     
-                print(f"ModernGL context info: {self.ctx.info}")
                 
                 # Setup shaders (only need to do this once)
                 self._setup_shaders(self.config)
@@ -276,53 +295,8 @@ class LinesVisualizer:
         if self.sample is None:
             return self.texture
         
-        # Set uniforms (with error handling for custom shaders)
-        try:
-            self.program['widget_width'] = float(self.widget_width)
-            self.program['widget_height'] = float(self.widget_height)
-        except KeyError:
-            pass  # Custom shader might not use these uniforms
-        
-        # Only set gradient uniforms if the shader expects them
-        try:
-            if self.gradient and self.colors_list:
-                self.program['use_gradient'] = True
-                self.program['num_gradient_colors'] = min(len(self.colors_list), 8)
-                
-                # Set gradient points
-                try:
-                    if self.gradient_points and len(self.gradient_points) >= 4:
-                        gp = [float(x) for x in self.gradient_points[:4]]
-                        self.program['gradient_points'] = tuple(gp)
-                    else:
-                        self.program['gradient_points'] = (0.0, 0.0, 1.0, 1.0)
-                except KeyError:
-                    pass  # gradient_points uniform not found (probably optimized out)
-                
-                # Set individual gradient color uniforms
-                for i in range(8):
-                    try:
-                        if i < len(self.colors_list):
-                            self.program[f'gradient_color{i}'] = self.colors_list[i]
-                        else:
-                            # Pad with the last color
-                            last_color = self.colors_list[-1] if self.colors_list else (0.0, 0.0, 0.0, 1.0)
-                            self.program[f'gradient_color{i}'] = last_color
-                    except KeyError:
-                        pass  # gradient_color uniform not found
-            else:
-                self.program['use_gradient'] = False
-                self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
-        except KeyError:
-            # Custom shader doesn't use gradient uniforms, that's fine
-            try:
-                self.program['solid_color'] = self.color if self.color else (0.0, 1.0, 1.0, 1.0)
-            except KeyError:
-                pass  # Custom shader doesn't use solid_color either
-        
-        # Update GPU data and render
-        self.update_gpu_data()
-        
+        Set_uniforms(self)  # Set uniforms for shader
+         
         if self.vao:
             if self.fill:
                 self.ctx.enable(moderngl.BLEND)
