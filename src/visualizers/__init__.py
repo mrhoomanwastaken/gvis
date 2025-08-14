@@ -16,7 +16,9 @@ from .shaders import (
     LINES_VERTEX_SHADER
 )
 from .common import (
-    Set_uniforms
+    Set_uniforms,
+    initialize_gpu,
+    on_draw_common
 )
 
 
@@ -31,5 +33,6 @@ __all__ = [
     'BARS_VERTEX_SHADER',
     'LINES_VERTEX_SHADER',
     'Set_uniforms',
-    'Set_uniforms'
+    'initialize_gpu',
+    'on_draw_common'
 ]

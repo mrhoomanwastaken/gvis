@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import cairo
 import numpy as np
 from .shaders import COMMON_FRAGMENT_SHADER, BARS_VERTEX_SHADER, get_shaders_for_config
-from .common import Set_uniforms
+from .common import Set_uniforms, initialize_gpu, on_draw_common
 
 try:
     import moderngl
@@ -56,65 +56,6 @@ class BarsVisualizer:
         self.initialized = False
         self.gpu_failed = False
         self.use_gpu = MODERNGL_AVAILABLE
-
-    def initialize_gpu(self, widget):
-        """Initialize GPU resources for rendering."""
-        if self.gpu_failed or not self.use_gpu:
-            return
-            
-        try:
-            new_width = widget.get_allocated_width()
-            new_height = widget.get_allocated_height()
-            
-            # Check if we need to create context or just update size
-            if not self.ctx:
-                # Try to create ModernGL context with different backends
-                self.ctx = None
-                
-                # Try different context creation methods
-                try:
-                    # Method 1: Try to create standalone context
-                    self.ctx = moderngl.create_context(standalone=True)
-                    print("Created standalone ModernGL context")
-                except Exception as e:
-                    print(f"Standalone context failed: {e}")
-                    try:
-                        # Method 2: Try to create context from existing OpenGL context
-                        self.ctx = moderngl.create_context()
-                        print("Created ModernGL context from existing OpenGL")
-                    except Exception as e2:
-                        print(f"Regular context creation failed: {e2}")
-                        # Method 3: Try with require=False for compatibility
-                        try:
-                            self.ctx = moderngl.create_context(require=330)
-                            print("Created ModernGL context with OpenGL 3.3 requirement")
-                        except Exception as e3:
-                            print(f"OpenGL 3.3 context failed: {e3}")
-                            raise RuntimeError("All ModernGL context creation methods failed")
-                
-                if self.ctx is None:
-                    raise RuntimeError("Failed to create ModernGL context")
-                    
-                
-                # Setup shaders (only need to do this once)
-                self._setup_shaders(self.config)
-            
-            # Update dimensions
-            self.widget_width = new_width
-            self.widget_height = new_height
-            
-            # Setup or update buffers with new dimensions
-            self._setup_buffers()
-            
-            self.initialized = True
-            print("GPU initialization successful")
-            
-        except Exception as e:
-            print(f"GPU initialization failed: {e}")
-            self.gpu_failed = True
-            self.use_gpu = False
-            # Fall back to CPU rendering
-            self._initialize_cpu_fallback(widget)
 
     def _setup_shaders(self, config=None):
         """Set up GPU shaders with flexible loading."""
@@ -266,56 +207,14 @@ class BarsVisualizer:
         """Initialize calculations that only need to be done once."""
         if self.use_gpu and not self.gpu_failed:
             # Try GPU initialization first
-            self.initialize_gpu(widget)
+            initialize_gpu(self, widget, moderngl)
         
         if not self.use_gpu or self.gpu_failed:
             # Fall back to CPU initialization
             self._initialize_cpu_fallback(widget)
 
     def on_draw(self, widget, cr):
-        current_width = widget.get_allocated_width()
-        current_height = widget.get_allocated_height()
-        
-        # Check if we need to reinitialize due to size change
-        if (not self.initialized or 
-            self.widget_width != current_width or 
-            self.widget_height != current_height):
-            
-            # Reset initialized flag so GPU resources are properly updated
-            if (self.widget_width != current_width or 
-                self.widget_height != current_height):
-                self.initialized = False
-                
-            self.initialize(widget)
-        
-        # Try GPU rendering first if available
-        if self.use_gpu and not self.gpu_failed and self.initialized:
-            try:
-                gpu_texture = self.render_to_texture()
-                
-                if gpu_texture is not None:
-                    # Read GPU texture data
-                    texture_data = gpu_texture.read()
-                    
-                    # Create Cairo surface from GPU texture
-                    cairo_surface = cairo.ImageSurface.create_for_data(
-                        bytearray(texture_data), 
-                        cairo.FORMAT_ARGB32,
-                        self.widget_width, 
-                        self.widget_height
-                    )
-                    
-                    # Draw the GPU-rendered texture to Cairo context
-                    cr.set_source_surface(cairo_surface, 0, 0)
-                    cr.paint()
-                    return
-            except Exception as e:
-                print(f"GPU rendering failed, falling back to CPU: {e}")
-                self.gpu_failed = True
-                self.use_gpu = False
-        
-        # Fallback to CPU rendering
-        self._fallback_cpu_render(widget, cr)
+        return on_draw_common(self, widget, cr)
 
     #untested
     def _fallback_cpu_render(self, widget, cr):
