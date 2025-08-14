@@ -1,5 +1,17 @@
+// EXAMPLE SHADER FILE - NOT INCLUDED IN COMPILED DISTRIBUTIONS
 // Originally from https://www.shadertoy.com/view/tsXBzS
 // Modified to fit the gvis framework
+//
+// This file is provided as an EXAMPLE ONLY to demonstrate custom shader capabilities.
+// It is NOT part of the main GPL-3.0 licensed gvis project.
+//
+/**
+ * This code is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+ * See https://creativecommons.org/licenses/by-nc-sa/3.0/ for details.
+ * 
+ * If you use this shader, you must comply with the CC BY-NC-SA 3.0 license terms
+ * separately from the main gvis project license.
+ */
 
 #version 330 core
 
