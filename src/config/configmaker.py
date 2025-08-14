@@ -44,7 +44,7 @@ def create_config():
                           'fill' : True , 
                           'scrobble' : False,
                           'CustomShader' : False,
-                          'FragmentShader' : '/path/to/your/shader.glsl',}
+                          'FragmentShader' : '/path/to/your/shader.glsl'}
     # Write the configuration to a file
     with open('config_example.ini', 'w') as configfile:
         config.write(configfile)
