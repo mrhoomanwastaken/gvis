@@ -68,7 +68,7 @@ void main()
 {
     vec2 fragCoord = gl_FragCoord.xy;
     vec2 uv = (fragCoord-(iResolution.xy/2.))/iResolution.x;
-    uv.y += -0.3;  // Shift view down to make fractal appear lower
+    uv.y += -0.2;  // Shift view down to make fractal appear lower
 	vec3 ro = vec3(0.,0.,-50.);
     ro.xz = rotate(ro.xz,iTime);
     vec3 cf = normalize(-ro);
