@@ -31,5 +31,5 @@ __all__ = [
     'BARS_VERTEX_SHADER',
     'LINES_VERTEX_SHADER',
     'Set_uniforms',
-    'start_time'
+    'Set_uniforms'
 ]
