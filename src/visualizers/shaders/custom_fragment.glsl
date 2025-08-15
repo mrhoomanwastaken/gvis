@@ -14,6 +14,7 @@
  */
 
 #version 330 core
+in float v_height;
 
 uniform float iTime;
 uniform vec2 iResolution;
@@ -82,6 +83,7 @@ void main()
     
     
     fragColor = col;
+    fragColor *= 1 + v_height;
     fragColor.a = 1.0;
 }
 
