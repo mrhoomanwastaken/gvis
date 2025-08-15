@@ -145,7 +145,7 @@ class BarsVisualizer:
         
         # Left side bars (reversed order)
         for i in range(self.number_of_bars):
-            if i < len(self.sample):
+            if i < self.number_of_bars:
                 height = self.sample[i]
                 bar_index = float(self.number_of_bars - 1 - i)  # Reverse for left side
                 instance_data.extend([height, bar_index])
@@ -153,7 +153,7 @@ class BarsVisualizer:
         # Right side bars (normal order)  
         for i in range(self.number_of_bars):
             sample_index = self.number_of_bars + i
-            if sample_index < len(self.sample):
+            if sample_index < self.number_of_bars * 2:
                 height = self.sample[sample_index]
                 bar_index = float(self.number_of_bars + i)  # Continue from center
                 instance_data.extend([height, bar_index])

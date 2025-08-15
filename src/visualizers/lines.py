@@ -166,30 +166,28 @@ class LinesVisualizer:
             # For filled mode, create alternating heights: waveform and baseline
             # Left side (reversed order)
             for i in range(self.number_of_bars):
-                if i < len(self.sample):
+                if i < self.number_of_bars:
                     height = self.sample[self.number_of_bars - 1 - i]  # Waveform point
                     heights.append(height)
                     heights.append(0.0)  # Baseline point
             
             # Right side (normal order)  
-            for i in range(self.number_of_bars):
-                sample_index = i
-                if sample_index < len(self.sample):
+            for sample_index in range(self.number_of_bars):
+                if sample_index < self.number_of_bars:
                     height = self.sample[sample_index]  # Waveform point
                     heights.append(height)
                     heights.append(0.0)  # Baseline point
         else:
             # For line mode, just the waveform points
             # Left side (reversed order)
-            for i in range(self.number_of_bars):
-                if i < len(self.sample):
-                    height = self.sample[self.number_of_bars - 1 - i]
+            for sample_index in range(self.number_of_bars):
+                if sample_index < self.number_of_bars:
+                    height = self.sample[self.number_of_bars - 1 - sample_index]
                     heights.append(height)
             
             # Right side (normal order)  
-            for i in range(self.number_of_bars):
-                sample_index = i
-                if sample_index < len(self.sample):
+            for sample_index in range(self.number_of_bars):
+                if sample_index < self.number_of_bars:
                     height = self.sample[sample_index]
                     heights.append(height)
         
