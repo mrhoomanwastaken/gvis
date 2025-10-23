@@ -297,7 +297,7 @@ class MyWindow(Gtk.Window):
             # 821 *should* be the size of the buttons at full size + the album art at full size 
             # (ie. the minimum size of the window before things start to go off the screen)
             # each button is 256 pixels and the album art is 300 pixels
-            relative_height = self.new_height / 400 # for the buttons height + some room for the visualizer
+            relative_height = self.new_height / 500 # for the buttons height + some room for the visualizer
             relative_width = self.new_width / 821 # 821 because they are side by side
             relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
             
@@ -309,7 +309,7 @@ class MyWindow(Gtk.Window):
             self.skip_image.set_from_pixbuf(self.skip_pixbuf_scaled)
 
 
-            relative_height = self.new_height / 400
+            relative_height = self.new_height / 500
             relative_width = self.new_width / 821
 
             relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
@@ -317,6 +317,16 @@ class MyWindow(Gtk.Window):
 
             scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
             self.album_art.set_from_pixbuf(scaled_pixbuf)
+
+            # Hide/show text labels based on minimum size thresholds
+            if self.new_width < 821 or self.new_height < 500:
+                self.song_name.hide()
+                self.album_name.hide()
+                self.artist_name.hide()
+            else:
+                self.song_name.show()
+                self.album_name.show()
+                self.artist_name.show()
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties): #where did interface_name come from? vibe coding at it finest folks.
         print(changed_properties)
