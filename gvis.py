@@ -288,10 +288,7 @@ class MyWindow(Gtk.Window):
         self.new_width = allocation.width
         self.new_height = allocation.height
 
-        #TODO: remove debugging print statements when done
         if self.old_width != self.new_width or self.old_height != self.new_height:
-            print(f"Window resized: New size = {self.new_width}x{self.new_height}")
-            print(f"Old size = {self.old_width}x{self.old_height}")
 
 
             # 821 *should* be the size of the buttons at full size + the album art at full size 
