@@ -109,9 +109,19 @@ def update_info(self , scrobble_enabled , network):
             loader = GdkPixbuf.PixbufLoader.new()
             loader.write(image_data)
             loader.close()
-            pixbuf = loader.get_pixbuf()
+            self.album_art_pixbuf = loader.get_pixbuf()
 
-            scaled_pixbuf = pixbuf.scale_simple(300, 300, GdkPixbuf.InterpType.BILINEAR)
+            try:
+                relative_height = self.new_height / 400
+                relative_width = self.new_width / 300
+            except AttributeError:
+                relative_height = self.height / 400
+                relative_width = self.width / 300
+
+            relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
+            scaled_size = int(300 * relative_size)
+
+            scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
             self.album_art.set_from_pixbuf(scaled_pixbuf)
         except Exception as e:
             print(f"Failed to load album image: {e}")
