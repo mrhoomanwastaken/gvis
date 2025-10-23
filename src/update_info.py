@@ -112,11 +112,11 @@ def update_info(self , scrobble_enabled , network):
             self.album_art_pixbuf = loader.get_pixbuf()
 
             try:
-                relative_height = self.new_height / 400
-                relative_width = self.new_width / 300
+                relative_height = self.new_height / 500
+                relative_width = self.new_width / 821
             except AttributeError:
-                relative_height = self.height / 400
-                relative_width = self.width / 300
+                relative_height = self.height / 500
+                relative_width = self.width / 821
 
             relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
             scaled_size = int(300 * relative_size)
