@@ -26,7 +26,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
 #why does gtk make me do this?
-from gi.repository import Gtk, Gdk , GLib
+from gi.repository import Gtk, Gdk , GLib , GdkPixbuf
 
 
 import src.cava.cava_init as cava_init
@@ -111,7 +111,8 @@ class MyWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="gvis")
         self.get_screen_size(self.get_display())
-        self.set_default_size(self.width, self.height // 2)
+        self.set_default_size(self.width, self.height)
+        self.connect("size-allocate", self.on_window_resize)
 
         # Enable support for transparency
         self.set_visual(self.get_screen().get_rgba_visual())
@@ -149,13 +150,17 @@ class MyWindow(Gtk.Window):
 
         self.song_box = Gtk.Box(spacing=0)
         self.song_box.set_valign(1)
-        self.song_box.set_margin_top(20) 
-        
-        #lets us find where the buttion images are if it is compiled with pyinstaller. 
+        self.song_box.set_margin_top(20)
+
+        #lets us find where the button images are if it is compiled with pyinstaller.
         if hasattr(sys, '_MEIPASS'):
-            self.back_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
+            self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
         else:
-            self.back_image = Gtk.Image.new_from_file(os.path.join(base_path , 'src/images/back.png'))
+            self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(base_path , 'src/images/back.png'))
+
+        self.back_pixbuf_scaled = self.back_pixbuf.scale_simple(256, 256, GdkPixbuf.InterpType.BILINEAR)
+
+        self.back_image = Gtk.Image.new_from_pixbuf(self.back_pixbuf_scaled)
         self.back_button = Gtk.Button(image = self.back_image)
         self.back_button.get_style_context().add_class("transparent-button")
         self.back_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -170,9 +175,13 @@ class MyWindow(Gtk.Window):
         
 
         if hasattr(sys, '_MEIPASS'):
-            self.skip_image = Gtk.Image.new_from_file(os.path.join(sys._MEIPASS, 'src/images/skip.png'))
+            self.skip_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(sys._MEIPASS, 'src/images/skip.png'))
         else:
-            self.skip_image = Gtk.Image.new_from_file(os.path.join(base_path , 'src/images/skip.png'))
+            self.skip_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(base_path , 'src/images/skip.png'))
+        
+        self.skip_pixbuf_scaled = self.skip_pixbuf.scale_simple(256, 256, GdkPixbuf.InterpType.BILINEAR)
+
+        self.skip_image = Gtk.Image.new_from_pixbuf(self.skip_pixbuf_scaled)
         self.skip_button = Gtk.Button(image = self.skip_image)
         self.skip_button.get_style_context().add_class("transparent-button")
         self.skip_button.set_relief(Gtk.ReliefStyle.NONE)
@@ -189,10 +198,10 @@ class MyWindow(Gtk.Window):
         self.progress_bar.set_fraction(1)
         self.album_art_holder.add_overlay(self.progress_bar)
 
-        self.pause_buttion = Gtk.Button()
-        self.pause_buttion.get_style_context().add_class("transparent-button")
-        self.pause_buttion.set_relief(Gtk.ReliefStyle.NONE)
-        self.album_art_holder.add_overlay(self.pause_buttion)
+        self.pause_button = Gtk.Button()
+        self.pause_button.get_style_context().add_class("transparent-button")
+        self.pause_button.set_relief(Gtk.ReliefStyle.NONE)
+        self.album_art_holder.add_overlay(self.pause_button)
 
         self.song_name = Gtk.Label()
         self.song_name.get_style_context().add_class("white-label")
@@ -208,7 +217,7 @@ class MyWindow(Gtk.Window):
 
         self.back_button.connect("clicked", lambda button: on_back_button_clicked(self.source, button, self.progress_bar))
         self.skip_button.connect("clicked", lambda button: on_skip_button_clicked(self.source, button))
-        self.pause_buttion.connect("clicked", lambda button: on_pause_button_clicked(self.source, button))
+        self.pause_button.connect("clicked", lambda button: on_pause_button_clicked(self.source, button))
 
         self.overlay.add_overlay(self.song_box)
         
@@ -267,6 +276,54 @@ class MyWindow(Gtk.Window):
         self.height = y1 - y0
         self.width = x1 - x0
 
+    def on_window_resize(self, widget, allocation):
+        try: # set the new old values to the old new values (cursed)
+            self.old_width = self.new_width 
+            self.old_height = self.new_height
+        except AttributeError: #initialize on first run
+            self.old_width = 0 
+            self.old_height = 0
+
+        #get the new values
+        self.new_width = allocation.width
+        self.new_height = allocation.height
+
+        if self.old_width != self.new_width or self.old_height != self.new_height:
+
+
+            # 821 *should* be the size of the buttons at full size + the album art at full size 
+            # (ie. the minimum size of the window before things start to go off the screen)
+            # each button is 256 pixels and the album art is 300 pixels
+            relative_height = self.new_height / 500 # for the buttons height + some room for the visualizer
+            relative_width = self.new_width / 821 # 821 because they are side by side
+            relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
+            
+            scaled_size = int(256 * relative_size)
+
+            self.back_pixbuf_scaled = self.back_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
+            self.back_image.set_from_pixbuf(self.back_pixbuf_scaled)
+            self.skip_pixbuf_scaled = self.skip_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
+            self.skip_image.set_from_pixbuf(self.skip_pixbuf_scaled)
+
+
+            relative_height = self.new_height / 500
+            relative_width = self.new_width / 821
+
+            relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
+            scaled_size = int(300 * relative_size)
+
+            scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
+            self.album_art.set_from_pixbuf(scaled_pixbuf)
+
+            # Hide/show text labels based on minimum size thresholds
+            if self.new_width < 821 or self.new_height < 500:
+                self.song_name.hide()
+                self.album_name.hide()
+                self.artist_name.hide()
+            else:
+                self.song_name.show()
+                self.album_name.show()
+                self.artist_name.show()
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties): #where did interface_name come from? vibe coding at it finest folks.
         print(changed_properties)
