@@ -6,6 +6,6 @@ PyGObject==3.54.5
 pylast==6.0.0
 python-dotenv==1.2.1
 setuptools==80.9.0
-# GPU acceleration libraries (optional)
+# GPU acceleration libraries
 moderngl==5.12.0
 PyOpenGL==3.1.10

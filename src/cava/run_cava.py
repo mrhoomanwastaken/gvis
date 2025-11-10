@@ -29,6 +29,8 @@ def run_cava(input_source, buffer_size, channels, number_of_bars, cava_lib, plan
         print(f"setting audio target to {input_source}")
 
     # Open pw-cat to stream audio data from the app or microphone.
+    # sometimes of you pause the music pw-cat will crash and will cause the visualizer to hang
+    # TODO: add some kind of timeout or error handling for that
     process = subprocess.Popen(
         ["pw-cat", "-ra", "--target", str(input_source), "--format", "f32", "-"],
         stdout=subprocess.PIPE,

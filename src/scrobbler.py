@@ -16,6 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+# if you want to run this code you will need an app api key from last fm
+# you can get one here: https://www.last.fm/api/account/create
+# if you ran the compiled version of gvis it would have made a .session_key file in your home directory
+# that file wont work becuase its linked to my api keys so you will need to delete it and run this code to make your own
+# as far as I know this will work with last fm alternatives like libre fm but I have not tested it
+
 import pylast
 import os
 from dotenv import load_dotenv

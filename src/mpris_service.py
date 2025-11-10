@@ -20,7 +20,7 @@ import sys
 import select
 from gi.repository import Gio
 
-#note: I dont like dbus_proxy but the good versions are deprecated
+#NOTE: I dont like dbus_proxy but the good versions are deprecated
 
 def get_mpris_service():
     bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -70,6 +70,10 @@ def get_mpris_service():
             Failed_sources.append(i)
     
     print(mpris_services)
+    # this will list the pygobject proxies that are working
+    # this is an issue becuase the names are not human readable (looks like base64)
+    # and because the user has to choose between them if there are multiple working sources thats bad
+    # but the first one is usually the right one so its not a huge issue
     print(working_sources)
     
     if len(working_sources) == 1:

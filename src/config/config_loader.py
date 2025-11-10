@@ -40,6 +40,8 @@ def load_config():
         print("Debug mode")
 
     try:
+        # this is ugly but I cant think of a better way to do it right now
+        # TODO: add more fallbacks
         gvis_config = {
             'number_of_bars': int(config['gvis']['bars']),
             'rate': int(config['gvis']['rate']),
@@ -71,6 +73,8 @@ def load_config():
             gvis_config['background_col'] = (0, 0, 0, 0.5)
 
         # Parse gradient or fallback to color1
+        # I dont think we need this anymore becuase the shader code (should) handle it
+        # but im not sure so im leaving it here for now
         if gvis_config['gradient']:
             colors = gvis_config['color_gradent'].split(',')
             colors = [float(i) for i in colors]

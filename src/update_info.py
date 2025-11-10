@@ -21,6 +21,8 @@ from gi.repository import GdkPixbuf, GLib, Gio
 from src.scrobbler import scrobble_track
 
 def update_info(self , scrobble_enabled , network):
+    # sometimes update_info is called when there is no source
+    # that happens the first time the app is opened before a player is detected
     if not self.source:
         return
 
@@ -36,6 +38,9 @@ def update_info(self , scrobble_enabled , network):
     song_name = metadata.get('xesam:title')
     self.song_name.set_label(song_name)
 
+    # NOTE: dont touch this code it is cursed and haunted
+    # this took the longest time to debug because of the mess of if else statements
+    # see next comment block for more info
     try:
         if self.old_song != song_name:
             self.new_song = True
@@ -129,6 +134,9 @@ def update_info(self , scrobble_enabled , network):
         print("No album image available.")
 
     if scrobble_enabled and self.new_song:
+        # Scrobble the track
+        # this fails if any of the metadata is missing
+        # this happens on websites that are not for music (ie most social media sites)
         try:
             print(f"Attempting to scrobble: {artist_name[0]} - {song_name} - {album_name}")
             scrobble_track(network,artist_name,song_name , album_name , metadata.get('mpris:length')/1000000)
@@ -142,6 +150,9 @@ def update_info(self , scrobble_enabled , network):
     self.new_song = False
 
 def update_progress(self):
+    # there is a bit of inaccuracy here becuase of floating point nonesense
+    # but it should be close enough for a progress bar
+    # if you are on kde and it seems way off, its not my fault, blame kde (see above comments for more info)
     if self.just_updated:
         self.just_updated = False
     elif self.source.get_cached_property("PlaybackStatus").unpack() == 'Playing':

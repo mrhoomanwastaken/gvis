@@ -2,6 +2,7 @@ import os
 import ctypes
 # This script initializes the Cava library for audio visualization.
 # It sets up the necessary paths and function signatures for the Cava library.
+# just a *fancy* bootloader for cava
 
 
 #get cavacore ready

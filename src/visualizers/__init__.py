@@ -3,6 +3,9 @@ Visualizers package for gvis.
 Contains different visualization types and shared shader loading utilities.
 """
 
+# I dont really get the point of having an __init__.py file becuase this is not a package
+# but PEP8 says to have one so here we are
+
 from time import time
 from .bars import BarsVisualizer
 from .lines import LinesVisualizer
