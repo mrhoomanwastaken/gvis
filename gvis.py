@@ -78,7 +78,7 @@ fragmentshader = gvis_config['fragment_shader']
 # Parse background color
 background_col = gvis_config['background_col']
 if gvis_config['gradient']:
-    colors_list = gvis_config['color_gradent']
+    colors_list = gvis_config['color_gradient']
     num_colors = len(colors_list)
     gradient_points = gvis_config['gradient_points']
 else:
