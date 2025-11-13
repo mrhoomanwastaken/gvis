@@ -61,7 +61,8 @@ def load_config():
             'color1': config.get('gvis', 'color1', fallback=None),
             'scrobble': config.getboolean('gvis', 'scrobble', fallback=False),
             'custom_shader': config.getboolean('gvis', 'CustomShader', fallback=False),
-            'fragment_shader': config.get('gvis', 'FragmentShader', fallback=None)
+            'fragment_shader': config.get('gvis', 'FragmentShader', fallback=None),
+            'dynamic_scaling': config.getboolean('gvis', 'dynamic_scaling', fallback=False)
         }
 
         # Parse background color
