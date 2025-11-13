@@ -35,7 +35,14 @@ def initialize_cava(base_path):
         OSError: If the shared library cannot be loaded.
     """
     global cava_lib
-    cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.so'))
+    try:
+        cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.x86.so'))
+    except:
+        try:
+            cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.arm64.so'))
+        except:
+            raise RuntimeError("Could not load libcavacore for this architecture.")
+
 
     cava_lib.cava_init.argtypes = [
         ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 
