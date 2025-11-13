@@ -2,6 +2,7 @@ import os
 import ctypes
 # This script initializes the Cava library for audio visualization.
 # It sets up the necessary paths and function signatures for the Cava library.
+# just a *fancy* bootloader for cava
 
 
 #get cavacore ready
@@ -34,7 +35,14 @@ def initialize_cava(base_path):
         OSError: If the shared library cannot be loaded.
     """
     global cava_lib
-    cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.so'))
+    try:
+        cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.x86.so'))
+    except OSError as e:
+        try:
+            cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.arm64.so'))
+        except:
+            raise OSError("Could not load libcavacore for this architecture: ", e)
+
 
     cava_lib.cava_init.argtypes = [
         ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int, 

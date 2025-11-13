@@ -3,6 +3,8 @@ GPU shader definitions for gvis visualizers.
 Contains shader loading utilities and functions to access shader files.
 """
 
+# NOTE: this is more ai slop but if it aint broke dont fix it
+
 import os
 from pathlib import Path
 
@@ -52,6 +54,8 @@ def get_shader(shader_name: str) -> str:
         _shader_cache[shader_name] = load_shader(shader_name)
     return _shader_cache[shader_name]
 
+# NOTE: there has to be a better way to do this but I cant be bothered
+
 def get_common_fragment_shader() -> str:
     """Get the common fragment shader source."""
     return get_shader('common_fragment')
@@ -79,6 +83,7 @@ def load_custom_shader(file_path: str) -> str:
         IOError: If there's an error reading the file
     """
     # Add .glsl extension if not present
+    # NOTE: why did copilot think that this was necessary?
     if not file_path.endswith('.glsl'):
         file_path = f"{file_path}.glsl"
     
@@ -93,7 +98,7 @@ def load_custom_shader(file_path: str) -> str:
     
     if not shader_path.exists():
         raise FileNotFoundError(f"Custom shader file not found: {shader_path}")
-    
+    # this implies that we can use emojis in shader paths which is kinda funny
     try:
         with open(shader_path, 'r', encoding='utf-8') as f:
             return f.read()

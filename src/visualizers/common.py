@@ -31,6 +31,8 @@ def Set_uniforms(self):
         - solid_color (tuple of 4 floats)
     """
 
+    # most of this stuff is from shader toy so that they can be ported easily
+
     # Set widget dimensions
     try:
         self.program['widget_width'] = float(self.widget_width)

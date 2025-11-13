@@ -40,6 +40,8 @@ def load_config():
         print("Debug mode")
 
     try:
+        # this is ugly but I cant think of a better way to do it right now
+        # TODO: add more fallbacks
         gvis_config = {
             'number_of_bars': int(config['gvis']['bars']),
             'rate': int(config['gvis']['rate']),
@@ -54,7 +56,7 @@ def load_config():
             'fill': config.getboolean('gvis', 'fill'),
             'gradient': config.getboolean('gvis', 'gradient'),
             'background_col': config['gvis']['background_col'],
-            'color_gradent': config.get('gvis', 'color_gradent', fallback=None),
+            'color_gradient': config.get('gvis', 'color_gradient', fallback=None),
             'gradient_points': config.get('gvis', 'gradient_points', fallback=None).split(',') ,
             'color1': config.get('gvis', 'color1', fallback=None),
             'scrobble': config.getboolean('gvis', 'scrobble', fallback=False),
@@ -71,8 +73,10 @@ def load_config():
             gvis_config['background_col'] = (0, 0, 0, 0.5)
 
         # Parse gradient or fallback to color1
+        # I dont think we need this anymore becuase the shader code (should) handle it
+        # but im not sure so im leaving it here for now
         if gvis_config['gradient']:
-            colors = gvis_config['color_gradent'].split(',')
+            colors = gvis_config['color_gradient'].split(',')
             colors = [float(i) for i in colors]
             colors_list = []
             if len(colors) % 4 == 0:
@@ -80,7 +84,7 @@ def load_config():
                 for i in range(num_colors):
                     color = tuple(colors[(i * 4):((i + 1) * 4)])
                     colors_list.append(color)
-                gvis_config['color_gradent'] = colors_list
+                gvis_config['color_gradient'] = colors_list
             else:
                 raise ValueError("Invalid gradient configuration.")
         else:

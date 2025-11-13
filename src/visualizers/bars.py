@@ -16,6 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+# this was revamped to use gpu acceleration with moderngl
+# by copilot becuase I am bad at opengl and shaders
+# so becuase of that I would like someone to review this becuase it looks very inefficient
+# same applys to lines.py 
+
 import cairo
 import numpy as np
 from .shaders import COMMON_FRAGMENT_SHADER, BARS_VERTEX_SHADER, get_shaders_for_config

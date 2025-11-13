@@ -78,7 +78,7 @@ fragmentshader = gvis_config['fragment_shader']
 # Parse background color
 background_col = gvis_config['background_col']
 if gvis_config['gradient']:
-    colors_list = gvis_config['color_gradent']
+    colors_list = gvis_config['color_gradient']
     num_colors = len(colors_list)
     gradient_points = gvis_config['gradient_points']
 else:
@@ -109,6 +109,7 @@ else:
 
 class MyWindow(Gtk.Window):
     def __init__(self):
+        # Window layout
         super().__init__(title="gvis")
         self.get_screen_size(self.get_display())
         self.set_default_size(self.width, self.height)
@@ -153,10 +154,15 @@ class MyWindow(Gtk.Window):
         self.song_box.set_margin_top(20)
 
         #lets us find where the button images are if it is compiled with pyinstaller.
+        #not really needed anymore becuase I dont use pyinstaller anymore (it got to big)
         if hasattr(sys, '_MEIPASS'):
             self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
         else:
             self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(base_path , 'src/images/back.png'))
+
+        #after the dynamic resizing was implemented, some systems have issues with running the app
+        #it might be an issue with the pixbuf, most likely a downstream issue with gtk or gdkpixbuf
+        #TODO: add some kind of option to disable dynamic resizing if issues persist
 
         self.back_pixbuf_scaled = self.back_pixbuf.scale_simple(256, 256, GdkPixbuf.InterpType.BILINEAR)
 
@@ -248,6 +254,8 @@ class MyWindow(Gtk.Window):
             raise ValueError(f"Unsupported visualization type: {vis_type}")
 
         # Print GPU acceleration status
+        # this always seems to say that there is no gpu context
+        # this just seems to be a strange quirck becuase it is using gpu acceleration
         if hasattr(self.visualizer, 'get_performance_info'):
             perf_info = self.visualizer.get_performance_info()
             print(f"Visualization acceleration: {perf_info['current_mode']}")
@@ -277,6 +285,9 @@ class MyWindow(Gtk.Window):
         self.width = x1 - x0
 
     def on_window_resize(self, widget, allocation):
+
+        #TODO: add an option to disable dynamic resizing if issues persist 
+        # see line 160ish
         try: # set the new old values to the old new values (cursed)
             self.old_width = self.new_width 
             self.old_height = self.new_height
@@ -325,16 +336,20 @@ class MyWindow(Gtk.Window):
                 self.album_name.show()
                 self.artist_name.show()
 
-    def on_properties_changed(self, interface_name, changed_properties, invalidated_properties): #where did interface_name come from? vibe coding at it finest folks.
+    def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
+        # this sometimes gets called even when nothing has changed
+        # seems to come from downstream in mpris
         print(changed_properties)
         self.update_info()
 
     def update_info(self):
+        # NOTE: self.update_info is diffrent from update_info imported from src.update_info
+        # should probably rename one of them to avoid confusion
         global scrobble_enabled, network
         update_info(self , scrobble_enabled, network)
 
     def update_progress(self):
-        return update_progress(self)
+        return update_progress(self) #returns True to keep the timeout_add running
 
     
     def run_cava(self):
