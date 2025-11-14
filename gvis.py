@@ -285,7 +285,7 @@ class MyWindow(Gtk.Window):
         self.width = x1 - x0
 
     def on_window_resize(self, widget, allocation):
-        if not gvis_config['dynamic_resizing']: #quick hack to disable dynamic resizing (might not work)
+        if not gvis_config['dynamic_scaling']: #quick hack to disable dynamic resizing (might not work)
             return
 
         #TODO: add an option to disable dynamic resizing if issues persist 
