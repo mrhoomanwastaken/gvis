@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 # boring self explanatory functions for ui controls
-# if you want an explanation on how this works ask chatgpt or somthing (chatgpt pretty wrote this code ngl)
+# if you want an explanation on how this works ask chatgpt or something (chatgpt pretty wrote this code ngl)
 
 from gi.repository import Gio
 

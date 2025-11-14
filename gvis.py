@@ -154,7 +154,7 @@ class MyWindow(Gtk.Window):
         self.song_box.set_margin_top(20)
 
         #lets us find where the button images are if it is compiled with pyinstaller.
-        #not really needed anymore becuase I dont use pyinstaller anymore (it got to big)
+        #not really needed anymore because I dont use pyinstaller anymore (it got to big)
         if hasattr(sys, '_MEIPASS'):
             self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
         else:
@@ -255,7 +255,7 @@ class MyWindow(Gtk.Window):
 
         # Print GPU acceleration status
         # this always seems to say that there is no gpu context
-        # this just seems to be a strange quirck becuase it is using gpu acceleration
+        # this just seems to be a strange quirk because it is using gpu acceleration
         if hasattr(self.visualizer, 'get_performance_info'):
             perf_info = self.visualizer.get_performance_info()
             print(f"Visualization acceleration: {perf_info['current_mode']}")
@@ -285,8 +285,7 @@ class MyWindow(Gtk.Window):
         self.width = x1 - x0
 
     def on_window_resize(self, widget, allocation):
-
-        if not gvis_config['dynamic_scaling']:
+        if not gvis_config['dynamic_resizing']: #quick hack to disable dynamic resizing (might not work)
             return
 
         #TODO: add an option to disable dynamic resizing if issues persist 
@@ -346,7 +345,7 @@ class MyWindow(Gtk.Window):
         self.update_info()
 
     def update_info(self):
-        # NOTE: self.update_info is diffrent from update_info imported from src.update_info
+        # NOTE: self.update_info is different from update_info imported from src.update_info
         # should probably rename one of them to avoid confusion
         global scrobble_enabled, network
         update_info(self , scrobble_enabled, network)

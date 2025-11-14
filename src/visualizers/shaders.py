@@ -3,7 +3,7 @@ GPU shader definitions for gvis visualizers.
 Contains shader loading utilities and functions to access shader files.
 """
 
-# NOTE: this is more ai slop but if it aint broke dont fix it
+# NOTE: this is more ai slop but if it ain't broke dont fix it
 
 import os
 from pathlib import Path
