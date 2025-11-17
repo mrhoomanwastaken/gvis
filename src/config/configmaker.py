@@ -25,7 +25,7 @@ def create_config():
     config = configparser.ConfigParser()
 
     # Add sections and key-value pairs
-    # If a change is made to this dont forget to update config_loader.py
+    # If a change is made to this don't forget to update config_loader.py
     config['General'] = {'debug': True, 'log_level': 'info'}
     config['gvis'] = {'dynamic_scaling': False,
                           'rate': 41000,
