@@ -74,7 +74,7 @@ def update_info(self , scrobble_enabled , network):
     #here are all the known issues:
     #1. I have not seen a single player that returns a position so its always going to assume the song just started
     #2. the update_progress function will overestimate the position if the song is longer than 100000 seconds
-    #3. kde is somehow even worse then this is and just gives the wrong song length (I have no idea where it gets its numbers from it seems like its just the amount of time that songs have been playing plus 1 minute)
+    #3. kde is somehow even worse than this is and just gives the wrong song length (I have no idea where it gets its numbers from it seems like its just the amount of time that songs have been playing plus 1 minute)
     #4. sometimes it will spam 'cant find accurate position in song assuming song just started' and I don't know why
     #6. rate does not work with any apps i have tested, but that does not matter because who listens to music at 2x speed anyway
     try:
