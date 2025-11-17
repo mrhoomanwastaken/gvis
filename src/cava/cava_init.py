@@ -35,13 +35,27 @@ def initialize_cava(base_path):
         OSError: If the shared library cannot be loaded.
     """
     global cava_lib
+    import platform
+    architecture = platform.machine()
+    print(f"Detected architecture: {architecture}")
+
+    if architecture == 'x86_64':
+        so_filename = 'libcavacore.x86.so'
+    elif architecture == 'aarch64' or architecture == 'arm64':
+        so_filename = 'libcavacore.arm64.so'
+    else:
+        architecture = platform.uname()[-2] # fallback
+        if architecture == 'x86_64':
+            so_filename = 'libcavacore.x86.so'
+        elif architecture == 'aarch64' or architecture == 'arm64':
+            so_filename = 'libcavacore.arm64.so'
+        else:
+            raise OSError(f"Unsupported architecture: {architecture}")
+    
     try:
-        cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.x86.so'))
+        cava_lib = ctypes.CDLL(os.path.join(base_path , f'src/cava/{so_filename}'))
     except OSError as e:
-        try:
-            cava_lib = ctypes.CDLL(os.path.join(base_path , 'src/cava/libcavacore.arm64.so'))
-        except:
-            raise OSError("Could not load libcavacore for this architecture: ", e)
+        raise OSError(f"Could not load libcavacore for this architecture: {e}")
 
 
     cava_lib.cava_init.argtypes = [

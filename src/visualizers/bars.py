@@ -17,9 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 # this was revamped to use gpu acceleration with moderngl
-# by copilot becuase I am bad at opengl and shaders
-# so becuase of that I would like someone to review this becuase it looks very inefficient
-# same applys to lines.py 
+# by copilot because I am bad at opengl and shaders
+# so because of that I would like someone to review this because it looks very inefficient
+# same applies to lines.py 
 
 import cairo
 import numpy as np
@@ -107,7 +107,7 @@ class BarsVisualizer:
     
 
     #note: I have not tested this yet so it might just break
-    #I also might never test it becuase I dont feel like it
+    #I also might never test it because I don't feel like it
     def _initialize_cpu_fallback(self, widget):
         """Initialize CPU fallback rendering."""
         self.widget_width = widget.get_allocated_width()

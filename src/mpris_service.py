@@ -71,7 +71,7 @@ def get_mpris_service():
     
     print(mpris_services)
     # this will list the pygobject proxies that are working
-    # this is an issue becuase the names are not human readable (looks like base64)
+    # this is an issue because the names are not human readable (looks like base64)
     # and because the user has to choose between them if there are multiple working sources thats bad
     # but the first one is usually the right one so its not a huge issue
     print(working_sources)
@@ -88,7 +88,7 @@ def get_mpris_service():
             if (i):
                 source = working_sources[int(sys.stdin.readline().strip())]
             else:
-                print('input timed out chooseing first option')
+                print('input timed out choosing first option')
                 source = working_sources[0]
     elif len(working_sources) == 0:
         raise ValueError("there needs to be at least one working mpris source")
