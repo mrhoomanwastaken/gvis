@@ -154,7 +154,7 @@ class MyWindow(Gtk.Window):
         self.song_box.set_margin_top(20)
 
         #lets us find where the button images are if it is compiled with pyinstaller.
-        #not really needed anymore because I dont use pyinstaller anymore (it got to big)
+        #not really needed anymore because I dont use pyinstaller anymore (it got too big)
         if hasattr(sys, '_MEIPASS'):
             self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
         else:
