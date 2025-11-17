@@ -49,7 +49,7 @@ def initialize_cava(base_path):
     try:
         cava_lib = ctypes.CDLL(os.path.join(base_path , f'src/cava/{so_filename}'))
     except OSError as e:
-        raise OSError("Could not load libcavacore for this architecture: ", e)
+        raise OSError(f"Could not load libcavacore for this architecture: {e}")
 
 
     cava_lib.cava_init.argtypes = [
