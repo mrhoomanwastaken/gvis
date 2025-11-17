@@ -101,7 +101,7 @@ def update_info(self , scrobble_enabled , network):
         self.progress_rate = 0
 
     #sometimes it will load a really low res image so it looks pixelated
-    #I dont know why it does this
+    #I don't know why it does this
     #it only seems to happen with the first song of the session
     #also on youtube music if the song is a video it will not load the image at all but only on kde
     #on anything but kde it will squish the thumbnail to fit the 300x300 size
