@@ -36,7 +36,7 @@ def initialize_cava(base_path):
     """
     global cava_lib
     import platform
-    architecture = platform.uname()[-2]
+    architecture = platform.machine()
     print(f"Detected architecture: {architecture}")
 
     if architecture == 'x86_64':
@@ -44,7 +44,13 @@ def initialize_cava(base_path):
     elif architecture == 'aarch64' or architecture == 'arm64':
         so_filename = 'libcavacore.arm64.so'
     else:
-        raise OSError(f"Unsupported architecture: {architecture}")
+        architecture = platform.uname()[-2] # fallback
+        if architecture == 'x86_64':
+            so_filename = 'libcavacore.x86.so'
+        elif architecture == 'aarch64' or architecture == 'arm64':
+            so_filename = 'libcavacore.arm64.so'
+        else:
+            raise OSError(f"Unsupported architecture: {architecture}")
     
     try:
         cava_lib = ctypes.CDLL(os.path.join(base_path , f'src/cava/{so_filename}'))
