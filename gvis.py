@@ -324,9 +324,12 @@ class MyWindow(Gtk.Window):
 
             relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
             scaled_size = int(300 * relative_size)
-
-            scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
-            self.album_art.set_from_pixbuf(scaled_pixbuf)
+            
+            try:
+                scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
+                self.album_art.set_from_pixbuf(scaled_pixbuf)
+            except AttributeError:
+                pass #album art not set yet common on kde
 
             # Hide/show text labels based on minimum size thresholds
             if self.new_width < 821 or self.new_height < 500:
