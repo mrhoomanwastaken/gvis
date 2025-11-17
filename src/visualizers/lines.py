@@ -116,7 +116,7 @@ class LinesVisualizer:
     
 
     #note: I have not tested this yet so it might just break
-    #I also might never test it because I dont feel like it
+    #I also might never test it because I don't feel like it
     def _initialize_cpu_fallback(self, widget):
         """Initialize CPU fallback rendering."""
         self.widget_width = widget.get_allocated_width()
