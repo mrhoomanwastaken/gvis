@@ -1,7 +1,0 @@
-nuitka --onefile --output-dir=nudist --include-data-files='./src/cava/libcavacore.arm64.so=src/cava/libcavacore.arm64.so' --include-data-files='./.env=.env' --include-data-dir="./src/images=src/images" --include-data-files="./src/visualizers/shaders/bars_vertex.glsl=src/visualizers/shaders/bars_vertex.glsl" --include-data-files="./src/visualizers/shaders/common_fragment.glsl=src/visualizers/shaders/common_fragment.glsl" --include-data-files="./src/visualizers/shaders/lines_vertex.glsl=src/visualizers/shaders/lines_vertex.glsl" --include-package="gi" --debug --show-progress --clang gvis.py
-
-# I lost this command and had to remake it one time
-# nuitka's docs suck.
-
-# Note: This excludes custom_fragment.glsl (CC-licensed example) from compilation
-# Only includes GPL-3.0 compatible shaders in the final binary

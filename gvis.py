@@ -155,6 +155,9 @@ class MyWindow(Gtk.Window):
 
         #lets us find where the button images are if it is compiled with pyinstaller.
         #not really needed anymore because I dont use pyinstaller anymore (it got too big)
+        #TODO: might be better to use gtk resources instead of loading from file directly
+        # ie. media-skip-backward and media-skip-forward icons from the system theme
+        # but then that brings up the whole can of worms about theme compatibility (Please don’t theme our apps) and I dont want to pick sides right now
         if hasattr(sys, '_MEIPASS'):
             self.back_pixbuf = GdkPixbuf.Pixbuf.new_from_file(os.path.join(sys._MEIPASS, 'src/images/back.png'))
         else:
