@@ -49,7 +49,9 @@ def create_config():
                           'CustomShader': False,
                           'FragmentShader': '/path/to/your/shader.glsl'}
     # Write the configuration to a file
-    with open(os.path.expanduser('~/.config/gvis/config_example.ini'), 'w') as configfile:
+    config_path = os.path.expanduser('~/.config/gvis/config_example.ini')
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, 'w') as configfile:
         config.write(configfile)
 
 
