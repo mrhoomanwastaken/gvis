@@ -13,7 +13,7 @@ NUITKA_BASE_ARGS := --onefile --output-dir=$(OUTPUT_DIR) \
 	--debug \
 	--show-progress
 PREFIX ?= /usr/local
-DESTDIR ?= 
+DESTDIR ?=
 BINDIR = $(PREFIX)/bin
 DESKTOPDIR = $(PREFIX)/share/applications
 
