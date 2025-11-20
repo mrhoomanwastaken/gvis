@@ -1,0 +1,15 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=gvis
+GenericName=Music Visualizer
+Comment=A music visualizer based on cavacore and built with Gtk+3
+Exec=gvis
+Icon=audio-x-generic
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=music;visualizer;audio;cava;gtk;lastfm;
+StartupNotify=true
+MimeType=audio/mpeg;audio/mp3;audio/flac;audio/ogg;audio/wav;
+StartupWMClass=gvis

@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import configparser
+import os
 #this is run every time the program is run
 #it sould only be running when there is no config file
 #TODO: fix that ^
@@ -48,7 +49,7 @@ def create_config():
                           'CustomShader': False,
                           'FragmentShader': '/path/to/your/shader.glsl'}
     # Write the configuration to a file
-    with open('config_example.ini', 'w') as configfile:
+    with open(os.path.expanduser('~/.config/gvis/config_example.ini'), 'w') as configfile:
         config.write(configfile)
 
 

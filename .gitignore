@@ -5,7 +5,6 @@ venv/
 build/main/
 pydist/
 main.spec
-.vscode/
 __pycache__/
 .env
 profile.out

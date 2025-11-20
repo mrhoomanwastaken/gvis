@@ -26,14 +26,18 @@ def load_config():
 
     if os.path.exists('config.ini'):
         config.read('config.ini')
+    elif os.path.exists(os.path.expanduser('~/.config/gvis/config.ini')):
+        config.read(os.path.expanduser('~/.config/gvis/config.ini'))
     else:
         print('Cannot find main config file. Falling back to example config file.')
         if os.path.exists('config_example.ini'):
             config.read('config_example.ini')
+        elif os.path.exists(os.path.expanduser('~/.config/gvis/config_example.ini')):
+            config.read(os.path.expanduser('~/.config/gvis/config_example.ini'))
         else:
             print("Could not find the config example file. Creating one now.")
             create_config()
-            config.read('config_example.ini')
+            config.read(os.path.expanduser('~/.config/gvis/config_example.ini'))
 
     debug = config['General'].getboolean('debug', fallback=False)
     if debug:
