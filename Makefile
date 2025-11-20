@@ -42,14 +42,14 @@ compile: setup
 	. venv/bin/activate && nuitka $(NUITKA_BASE_ARGS) $(CAVA_LIB) gvis.py
 
 # Force x86_64 compilation
-x86:
+x86: setup
 	@echo "Compiling for x86_64..."
-	nuitka $(NUITKA_BASE_ARGS) --include-data-files='./src/cava/libcavacore.x86.so=src/cava/libcavacore.x86.so' gvis.py
+	. venv/bin/activate && nuitka $(NUITKA_BASE_ARGS) --include-data-files='./src/cava/libcavacore.x86.so=src/cava/libcavacore.x86.so' gvis.py
 
 # Force ARM64 compilation
-arm64:
+arm64: setup
 	@echo "Compiling for ARM64..."
-	nuitka $(NUITKA_BASE_ARGS) --include-data-files='./src/cava/libcavacore.arm64.so=src/cava/libcavacore.arm64.so' gvis.py
+	. venv/bin/activate && nuitka $(NUITKA_BASE_ARGS) --include-data-files='./src/cava/libcavacore.arm64.so=src/cava/libcavacore.arm64.so' gvis.py
 
 # Clean build artifacts
 clean:
