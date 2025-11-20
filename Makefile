@@ -84,7 +84,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all/compile - Auto-detect architecture and compile"
 	@echo "  install     - Install system-wide (requires sudo)"
-	@echo "  install-user- Install for current user only"
+	@echo "  install-user - Install for current user only"
 	@echo "  uninstall   - Remove installed files"
 	@echo "  clean       - Remove build artifacts"
 	@echo "  help        - Show this help message"
