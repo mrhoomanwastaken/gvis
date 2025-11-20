@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import configparser
 import os
 #this is run every time the program is run
-#it sould only be running when there is no config file
+#it should only be running when there is no config file
 #TODO: fix that ^
 
 def create_config():
