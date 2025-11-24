@@ -20,7 +20,7 @@ DESKTOPDIR = $(PREFIX)/share/applications
 # Architecture-specific library
 ifeq ($(ARCH),x86_64)
     CAVA_LIB := --include-data-files='./src/cava/libcavacore.x86.so=src/cava/libcavacore.x86.so'
-else ifeq ($(ARCH),aarch64)
+else ifneq (,$(filter $(ARCH),aarch64 arm64 armv8))
     CAVA_LIB := --include-data-files='./src/cava/libcavacore.arm64.so=src/cava/libcavacore.arm64.so'
 else
     $(error Unsupported architecture: $(ARCH))
