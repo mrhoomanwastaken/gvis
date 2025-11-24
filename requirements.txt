@@ -1,9 +1,9 @@
 dotenv==0.9.9
-numpy==2.3.4
-pycairo==1.28.0
+numpy==2.3.5
+pycairo==1.29.0
 pydbus==0.6.0
 PyGObject==3.54.5
-pylast==6.0.0
+pylast==7.0.0
 python-dotenv==1.2.1
 setuptools==80.9.0
 # GPU acceleration libraries
