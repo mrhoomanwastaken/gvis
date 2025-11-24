@@ -1,0 +1,28 @@
+# Maintainer: mrhooman <113311405+mrhoomanwastaken@users.noreply.github.com>
+pkgname=gvis-bin
+pkgver=0.2
+pkgrel=1
+pkgdesc="A music visualizer based on cavacore and built with Gtk+3 (binary release)"
+arch=('x86_64')
+url="https://github.com/mrhoomanwastaken/gvis"
+license=('GPL')
+depends=('gtk3' 'mesa' 'dbus')
+provides=('gvis')
+conflicts=('gvis')
+source=("${pkgname}-${pkgver}.bin::https://github.com/mrhoomanwastaken/gvis/releases/download/v${pkgver}/gvis.bin"
+        "gvis.desktop::https://raw.githubusercontent.com/mrhoomanwastaken/gvis/v${pkgver}/gvis.desktop"
+        "LICENSE::https://raw.githubusercontent.com/mrhoomanwastaken/gvis/v${pkgver}/LICENSE")
+sha256sums=('SKIP'  # Update with actual checksum
+            'SKIP'
+            'SKIP')
+
+package() {
+    # Install binary
+    install -Dm755 "${srcdir}/${pkgname}-${pkgver}.bin" "${pkgdir}/usr/bin/gvis"
+    
+    # Install desktop file
+    install -Dm644 "${srcdir}/gvis.desktop" "${pkgdir}/usr/share/applications/gvis.desktop"
+    
+    # Install license
+    install -Dm644 "${srcdir}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
