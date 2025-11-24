@@ -14,9 +14,9 @@ sha256sums=('37cd498cbd5355f757073ae7e1ffd49f8a066c4fd1db91e170b7531945a3e7ff')
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
     
-    # Create blank .env file if it doesn't exist
-    if [ ! -f .env ]; then
-        touch .env
+    # Copy .env from working directory if it exists (optional for Last.fm scrobbling)
+    if [ -f "${startdir}/.env" ]; then
+        cp "${startdir}/.env" .env
     fi
 }
 

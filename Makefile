@@ -4,7 +4,6 @@
 ARCH := $(shell uname -m)
 OUTPUT_DIR := nudist
 NUITKA_BASE_ARGS := --onefile --output-dir=$(OUTPUT_DIR) \
-	--include-data-files='./.env=.env' \
 	--include-data-dir="./src/images=src/images" \
 	--include-data-files="./src/visualizers/shaders/bars_vertex.glsl=src/visualizers/shaders/bars_vertex.glsl" \
 	--include-data-files="./src/visualizers/shaders/common_fragment.glsl=src/visualizers/shaders/common_fragment.glsl" \
@@ -12,6 +11,11 @@ NUITKA_BASE_ARGS := --onefile --output-dir=$(OUTPUT_DIR) \
 	--include-package="gi" \
 	--debug \
 	--show-progress
+
+# Add .env file if it exists
+ifneq (,$(wildcard ./.env))
+	NUITKA_BASE_ARGS += --include-data-files='./.env=.env'
+endif
 PREFIX ?= /usr/local
 DESTDIR ?=
 BINDIR = $(PREFIX)/bin
