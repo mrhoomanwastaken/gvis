@@ -15,12 +15,12 @@ NUITKA_BASE_ARGS := --onefile --output-dir=$(OUTPUT_DIR) \
 PREFIX ?= /usr/local
 DESTDIR ?=
 BINDIR = $(PREFIX)/bin
-DESKTOPDIR = $(PREFIX)/share/applications
+DESKTOPDIR = $(PREFIX)categories/share/applications
 
 # Architecture-specific library
 ifeq ($(ARCH),x86_64)
     CAVA_LIB := --include-data-files='./src/cava/libcavacore.x86.so=src/cava/libcavacore.x86.so'
-else ifeq ($(ARCH),aarch64)
+else ifeq ($(ARCH),aarch64 arm64 armv8)
     CAVA_LIB := --include-data-files='./src/cava/libcavacore.arm64.so=src/cava/libcavacore.arm64.so'
 else
     $(error Unsupported architecture: $(ARCH))
