@@ -41,6 +41,13 @@ compile: setup
 	@echo "Compiling for $(ARCH)..."
 	. venv/bin/activate && nuitka $(NUITKA_BASE_ARGS) $(CAVA_LIB) gvis.py
 
+# Compile for packaging (with additional flags for stability)
+compile-pkg: setup
+	@echo "Compiling for packaging on $(ARCH)..."
+	. venv/bin/activate && nuitka $(NUITKA_BASE_ARGS) $(CAVA_LIB) \
+		--onefile-tempdir-spec='{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' \
+		gvis.py
+
 # Force x86_64 compilation
 x86: setup
 	@echo "Compiling for x86_64..."
@@ -83,6 +90,7 @@ mkconfig:
 help:
 	@echo "Available targets:"
 	@echo "  all/compile - Auto-detect architecture and compile"
+	@echo "  compile-pkg - Compile for packaging (recommended for PKGBUILD)"
 	@echo "  install     - Install system-wide (requires sudo)"
 	@echo "  install-user - Install for current user only"
 	@echo "  uninstall   - Remove installed files"

@@ -1,6 +1,6 @@
 # Maintainer: mrhooman <113311405+mrhoomanwastaken@users.noreply.github.com>
 pkgname=gvis
-pkgver=0.2
+pkgver=0.5
 pkgrel=1
 pkgdesc="A music visualizer based on cavacore and built with Gtk+3"
 arch=('x86_64' 'aarch64')
@@ -8,24 +8,30 @@ url="https://github.com/mrhoomanwastaken/gvis"
 license=('GPL')
 depends=('gtk3' 'mesa' 'dbus')
 makedepends=('python' 'python-pip' 'git')
+options=('!strip')
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/mrhoomanwastaken/gvis/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('530c3075e50c9b07c708a07fbdd57ef9afece4412e05c979374947e962b6c0b0')  # Update this with actual checksum after first build
+sha256sums=('37cd498cbd5355f757073ae7e1ffd49f8a066c4fd1db91e170b7531945a3e7ff')
 
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
     
-    # Create blank .env file if it doesn't exist
-    if [ ! -f .env ]; then
-        touch .env
+    # Copy .env from working directory if it exists (optional for Last.fm scrobbling)
+    if [ -f "${startdir}/.env" ]; then
+        cp "${startdir}/.env" .env
     fi
 }
 
 build() {
     cd "${srcdir}/${pkgname}-${pkgver}"
     
-    # Run make compile to build the binary
+    # Disable LTO for Nuitka compilation to avoid plugin conflicts
+    export CFLAGS="${CFLAGS/-flto=auto/}"
+    export CXXFLAGS="${CXXFLAGS/-flto=auto/}"
+    export LDFLAGS="${LDFLAGS/-flto=auto/}"
+    
+    # Run make compile-pkg to build the binary for packaging
     make mkconfig
-    make compile
+    make compile-pkg
 }
 
 package() {
