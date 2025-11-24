@@ -15,7 +15,7 @@ NUITKA_BASE_ARGS := --onefile --output-dir=$(OUTPUT_DIR) \
 PREFIX ?= /usr/local
 DESTDIR ?=
 BINDIR = $(PREFIX)/bin
-DESKTOPDIR = $(PREFIX)categories/share/applications
+DESKTOPDIR = $(PREFIX)/share/applications
 
 # Architecture-specific library
 ifeq ($(ARCH),x86_64)
