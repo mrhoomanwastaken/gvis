@@ -30,7 +30,6 @@ build() {
     export LDFLAGS="${LDFLAGS/-flto=auto/}"
     
     # Run make compile to build the binary
-    make mkconfig
     make compile
 
     sync
