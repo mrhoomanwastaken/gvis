@@ -7,6 +7,7 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/mrhoomanwastaken/gvis"
 license=('GPL')
 depends=('gtk3' 'mesa' 'dbus')
+options=('!strip')
 makedepends=('python' 'python-pip' 'git')
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/mrhoomanwastaken/gvis/archive/refs/tags/v${pkgver}.tar.gz")
 sha256sums=('37cd498cbd5355f757073ae7e1ffd49f8a066c4fd1db91e170b7531945a3e7ff')
@@ -31,6 +32,8 @@ build() {
     # Run make compile to build the binary
     make mkconfig
     make compile
+
+    sync
 }
 
 package() {
