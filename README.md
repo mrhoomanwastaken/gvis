@@ -1,18 +1,12 @@
 A music visualizer based on cavacore and built with Gtk+3.
 
-Currently in development and will progress further during school breaks.
-
-## Compatibility
-This app only works with PipeWire right now because that is what I use, and I have no way of testing it with other systems.
-
-![image](https://github.com/user-attachments/assets/16135590-98e1-4178-9906-b0680c344506)
+<img width="1920" height="1080" alt="Screenshot From 2026-01-19 14-44-25" src="https://github.com/user-attachments/assets/8de758e6-e1a3-4d48-8aa7-fd24b103836e" />
 
 # Features
 
 ## No Limits!
 This app removes the limitations of normal cava!  
 Want to have 1,000 bars and push your GPU to its limits? Now you can!  
-![image](https://github.com/user-attachments/assets/df734c92-c526-403c-b93c-0e064890679c)
 
 Be cautious, though—setting the bar count too high may cause segmentation faults and crashes. It's almost as if cavacore wasn't designed for that.
 
@@ -58,13 +52,21 @@ You can now run gvis normally, and it will continue to work.
 2. VLC (but only when it feels like it)  
 3. Any app where you know the PipeWire ID or `node.name`.
 
-# How to Run
-The first time you run it, make sure to use a terminal where you can input commands.  
-If it works without errors, you can run it using this command (or by clicking it):  
-`nohup ./gvis.bin & disown && exit`
+# Installation 
+## via pre built binarys
+You can find (a) pre built binary in github releases (only works for x86)
+as long as you have GTK+3 and pipewire it should work
 
-# Note
-busy work like docstrings are done by copilot. I do check what it outputs but I might miss some things. If you see something wrong with the docstrings or comments please tell me.
+## Makefile
+Download the source files and run `make install` and your done!
+Needs python,pip and gtk.
+
+## PKGBUILD
+If your on arch you can use the pkgbuild! Its under /pkg/arch.
+There is a normal PKGBUILD and PKGBUILD-bin (untested and unsupported for now )
+Its still a WIP and breaks a lot of rules (not one that damage anything just NOT best practice) so thats why its not on the aur.
+
+If you want to use last.fm with it you will have to supply a .env file in the root dir (the same folder as your PKGBUILD) with an API_KEY and API_SECRET from last.fm https://www.last.fm/api/account/create
 
 ## License
 
