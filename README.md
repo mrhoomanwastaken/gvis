@@ -71,25 +71,45 @@ If you want to use last.fm with it you will have to supply a .env file in the ro
 # Configuration
 
 Config files should be put in ~/.config/gvis (if you are using a pre built install you might need to make it)
+
 dynamic_scaling : whether to scale ui elements dynamically based on window size (might cause issues on some systems) *default: False*
+
 rate : audio sample rate *default: 44100*
+
 channels : number of audio channels to use (only supports 2 for now) *default: 2*
+
 autosens : whether to automatically adjust sensitivity based on audio input *default: True*
+
 noise_reduction : see cavacore docs *default: 0.77*
+
 low_cut_off : frequencies below this value will be ignored *default: 50*
+
 high_cut_off : frequencies above this value will be ignored *default: 10000*
+
 buffer_size : size of audio buffer (must be even number) see cavacore docs *default: 1200*
+
 input_source : pipewire source to use (can be found using `pw-top` or `pactl list sources short`) *default: Auto*
+
 bars : number of bars to display (high impact on performance) *default: 50*
+
 background_col : background color in rgba format *default: (0,0,0,0.5)*
+
 color1 : primary bar color in rgba format *default: (0,1,1,1)* **mostly deprecated**
+
 gradient : whether to use gradient colors for bars instead of color1 *default: True*
+
 color_gradient : list of colors to use for gradient in rgba format *default: [1,0,0,1,0,1,0,1,0,0,1,1]*
+
 gradient_points : screen coordinates for each color in color_gradient (0,0 is bottom-left 1,1 is top-right) *default: [1,1,1,0]*
+
 vis_type : whether to use bar or line visualization *default: bars*
+
 fill : whether to fill the bars/lines or just draw outlines *default: True*
+
 scrobble : whether to enable last.fm scrobbling *default: False*
+
 customshader : whether to use custom shader *default: False*
+
 fragmentshader : path to custom fragment shader file *default: '/path/to/your/shader.glsl'*
 
 ## License
