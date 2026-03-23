@@ -1,18 +1,12 @@
 A music visualizer based on cavacore and built with Gtk+3.
 
-Currently in development and will progress further during school breaks.
-
-## Compatibility
-This app only works with PipeWire right now because that is what I use, and I have no way of testing it with other systems.
-
-![image](https://github.com/user-attachments/assets/16135590-98e1-4178-9906-b0680c344506)
+<img width="1920" height="1080" alt="Screenshot From 2026-01-19 14-44-25" src="https://github.com/user-attachments/assets/8de758e6-e1a3-4d48-8aa7-fd24b103836e" />
 
 # Features
 
 ## No Limits!
 This app removes the limitations of normal cava!  
 Want to have 1,000 bars and push your GPU to its limits? Now you can!  
-![image](https://github.com/user-attachments/assets/df734c92-c526-403c-b93c-0e064890679c)
 
 Be cautious, though—setting the bar count too high may cause segmentation faults and crashes. It's almost as if cavacore wasn't designed for that.
 
@@ -58,13 +52,65 @@ You can now run gvis normally, and it will continue to work.
 2. VLC (but only when it feels like it)  
 3. Any app where you know the PipeWire ID or `node.name`.
 
-# How to Run
-The first time you run it, make sure to use a terminal where you can input commands.  
-If it works without errors, you can run it using this command (or by clicking it):  
-`nohup ./gvis.bin & disown && exit`
+# Installation 
+## via pre built binarys
+You can find (a) pre built binary in github releases (only works for x86)
+as long as you have GTK+3 and pipewire it should work
 
-# Note
-busy work like docstrings are done by copilot. I do check what it outputs but I might miss some things. If you see something wrong with the docstrings or comments please tell me.
+## Makefile
+Download the source files and run `make install` and your done!
+Needs python,pip and gtk.
+
+## PKGBUILD
+If your on arch you can use the pkgbuild! Its under /pkg/arch.
+There is a normal PKGBUILD and PKGBUILD-bin (untested and unsupported for now )
+Its still a WIP and breaks a lot of rules (not one that damage anything just NOT best practice) so thats why its not on the aur.
+
+If you want to use last.fm with it you will have to supply a .env file in the root dir (the same folder as your PKGBUILD) with an API_KEY and API_SECRET from last.fm https://www.last.fm/api/account/create
+
+# Configuration
+
+Config files should be put in ~/.config/gvis (if you are using a pre built install you might need to make it)
+
+dynamic_scaling : whether to scale ui elements dynamically based on window size (might cause issues on some systems) *default: False*
+
+rate : audio sample rate *default: 44100*
+
+channels : number of audio channels to use (only supports 2 for now) *default: 2*
+
+autosens : whether to automatically adjust sensitivity based on audio input *default: True*
+
+noise_reduction : see cavacore docs *default: 0.77*
+
+low_cut_off : frequencies below this value will be ignored *default: 50*
+
+high_cut_off : frequencies above this value will be ignored *default: 10000*
+
+buffer_size : size of audio buffer (must be even number) see cavacore docs *default: 1200*
+
+input_source : pipewire source to use (can be found using `pw-top` or `pactl list sources short`) *default: Auto*
+
+bars : number of bars to display (high impact on performance) *default: 50*
+
+background_col : background color in rgba format *default: (0,0,0,0.5)*
+
+color1 : primary bar color in rgba format *default: (0,1,1,1)* **mostly deprecated**
+
+gradient : whether to use gradient colors for bars instead of color1 *default: True*
+
+color_gradient : list of colors to use for gradient in rgba format *default: [1,0,0,1,0,1,0,1,0,0,1,1]*
+
+gradient_points : screen coordinates for each color in color_gradient (0,0 is bottom-left 1,1 is top-right) *default: [1,1,1,0]*
+
+vis_type : whether to use bar or line visualization *default: bars*
+
+fill : whether to fill the bars/lines or just draw outlines *default: True*
+
+scrobble : whether to enable last.fm scrobbling *default: False*
+
+customshader : whether to use custom shader *default: False*
+
+fragmentshader : path to custom fragment shader file *default: '/path/to/your/shader.glsl'*
 
 ## License
 
