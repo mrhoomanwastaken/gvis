@@ -10,7 +10,7 @@ depends=('gtk3' 'mesa' 'dbus')
 options=('!strip')
 makedepends=('python' 'python-pip' 'git')
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/mrhoomanwastaken/gvis/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('444b82d28c55e39558d3ba7af73ca569a381388b70e70d07835435e90ff33599')
+sha256sums=('888ade399b0e865fd1d0e7f3fb94ceb4991e158abab18555dedafef1a4c04ea1')
 
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
