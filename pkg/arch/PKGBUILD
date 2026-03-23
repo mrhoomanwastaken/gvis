@@ -1,6 +1,6 @@
 # Maintainer: mrhooman <113311405+mrhoomanwastaken@users.noreply.github.com>
 pkgname=gvis
-pkgver="0.6indev"
+pkgver="0.6indev1"
 pkgrel=1
 pkgdesc="A music visualizer based on cavacore and built with Gtk+3"
 arch=('x86_64' 'aarch64')
@@ -10,7 +10,7 @@ depends=('gtk3' 'mesa' 'dbus')
 options=('!strip')
 makedepends=('python' 'python-pip' 'git')
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/mrhoomanwastaken/gvis/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('888ade399b0e865fd1d0e7f3fb94ceb4991e158abab18555dedafef1a4c04ea1')
+sha256sums=('f1e6296230437ba4670622786be87ae2bacf17bf497aa298afe168f74d11c61e')
 
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
