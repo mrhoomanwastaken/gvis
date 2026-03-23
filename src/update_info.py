@@ -16,9 +16,74 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import threading
 import urllib.request
 from gi.repository import GdkPixbuf, GLib, Gio
 from src.scrobbler import scrobble_track
+
+
+def _extract_metadata(metadata_variant):
+    metadata = metadata_variant.unpack()
+    if isinstance(metadata, tuple) and metadata:
+        metadata = metadata[0]
+    if hasattr(metadata, 'unpack'):
+        metadata = metadata.unpack()
+    if isinstance(metadata, dict):
+        return metadata
+    return {}
+
+
+def _start_album_art_fetch(self, album_image_url):
+    request_id = getattr(self, '_album_art_request_id', 0) + 1
+    self._album_art_request_id = request_id
+    self._album_art_loading_url = album_image_url
+
+    def _apply_album_art(current_request_id, current_url, image_data):
+        if getattr(self, '_album_art_request_id', 0) != current_request_id:
+            return False
+        try:
+            loader = GdkPixbuf.PixbufLoader.new()
+            loader.write(image_data)
+            loader.close()
+            self.album_art_pixbuf = loader.get_pixbuf()
+
+            try:
+                relative_height = self.new_height / 500
+                relative_width = self.new_width / 821
+            except AttributeError:
+                relative_height = self.height / 500
+                relative_width = self.width / 821
+
+            relative_size = min(relative_height, relative_width, 1)
+            scaled_size = int(300 * relative_size)
+            scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
+            self.album_art.set_from_pixbuf(scaled_pixbuf)
+            self._album_art_current_url = current_url
+        except Exception as e:
+            print(f"Failed to load album image: {e}")
+        finally:
+            if getattr(self, '_album_art_loading_url', None) == current_url:
+                self._album_art_loading_url = None
+        return False
+
+    def _report_album_art_error(current_request_id, current_url, error_message):
+        if getattr(self, '_album_art_request_id', 0) != current_request_id:
+            return False
+        if getattr(self, '_album_art_loading_url', None) == current_url:
+            self._album_art_loading_url = None
+        print(f"Failed to load album image: {error_message}")
+        return False
+
+    def _fetch_album_art():
+        try:
+            response = urllib.request.urlopen(album_image_url, timeout=2.0)
+            image_data = response.read()
+            response.close()
+            GLib.idle_add(_apply_album_art, request_id, album_image_url, image_data)
+        except Exception as e:
+            GLib.idle_add(_report_album_art_error, request_id, album_image_url, str(e))
+
+    threading.Thread(target=_fetch_album_art, daemon=True).start()
 
 def update_info(self , scrobble_enabled , network):
     # sometimes update_info is called when there is no source
@@ -26,14 +91,20 @@ def update_info(self , scrobble_enabled , network):
     if not self.source:
         return
 
-    metadata_variant = self.source.call_sync(
-        "org.freedesktop.DBus.Properties.Get",
-        GLib.Variant("(ss)", ("org.mpris.MediaPlayer2.Player", "Metadata")),
-        Gio.DBusCallFlags.NONE,
-        -1,  # No timeout
-        None
-    )
-    metadata = metadata_variant.unpack()[0]
+    try:
+        metadata_variant = self.source.get_cached_property("Metadata")
+        if metadata_variant is None:
+            metadata_variant = self.source.call_sync(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", ("org.mpris.MediaPlayer2.Player", "Metadata")),
+                Gio.DBusCallFlags.NONE,
+                500,
+                None
+            )
+    except GLib.GError as e:
+        print(f"Failed to fetch metadata: {e}")
+        return
+    metadata = _extract_metadata(metadata_variant)
 
     song_name = metadata.get('xesam:title')
     self.song_name.set_label(song_name)
@@ -107,29 +178,10 @@ def update_info(self , scrobble_enabled , network):
     #on anything but kde it will squish the thumbnail to fit the 300x300 size
     album_image_url = metadata.get("mpris:artUrl")
     if album_image_url:
-        try:
-            response = urllib.request.urlopen(album_image_url)
-            image_data = response.read()
-
-            loader = GdkPixbuf.PixbufLoader.new()
-            loader.write(image_data)
-            loader.close()
-            self.album_art_pixbuf = loader.get_pixbuf()
-
-            try:
-                relative_height = self.new_height / 500
-                relative_width = self.new_width / 821
-            except AttributeError:
-                relative_height = self.height / 500
-                relative_width = self.width / 821
-
-            relative_size = min(relative_height , relative_width , 1) # dont let it get bigger than 1x size
-            scaled_size = int(300 * relative_size)
-
-            scaled_pixbuf = self.album_art_pixbuf.scale_simple(scaled_size, scaled_size, GdkPixbuf.InterpType.BILINEAR)
-            self.album_art.set_from_pixbuf(scaled_pixbuf)
-        except Exception as e:
-            print(f"Failed to load album image: {e}")
+        current_art_url = getattr(self, '_album_art_current_url', None)
+        loading_art_url = getattr(self, '_album_art_loading_url', None)
+        if album_image_url != current_art_url and album_image_url != loading_art_url:
+            _start_album_art_fetch(self, album_image_url)
     else:
         print("No album image available.")
 
@@ -139,7 +191,11 @@ def update_info(self , scrobble_enabled , network):
         # this happens on websites that are not for music (ie most social media sites)
         try:
             print(f"Attempting to scrobble: {artist_name[0]} - {song_name} - {album_name}")
-            scrobble_track(network,artist_name,song_name , album_name , metadata.get('mpris:length')/1000000)
+            threading.Thread(
+                target=scrobble_track,
+                args=(network, artist_name, song_name, album_name, metadata.get('mpris:length')/1000000),
+                daemon=True
+            ).start()
         except Exception as e:
             print(f"Failed to scrobble: {e}")
             print(f"Error type: {type(e)}")
