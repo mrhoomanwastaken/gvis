@@ -76,10 +76,9 @@ def _start_album_art_fetch(self, album_image_url):
 
     def _fetch_album_art():
         try:
-            response = urllib.request.urlopen(album_image_url, timeout=2.0)
-            image_data = response.read()
-            response.close()
-            GLib.idle_add(_apply_album_art, request_id, album_image_url, image_data)
+            with urllib.request.urlopen(album_image_url, timeout=2.0) as response:
+                image_data = response.read()
+                GLib.idle_add(_apply_album_art, request_id, album_image_url, image_data)
         except Exception as e:
             GLib.idle_add(_report_album_art_error, request_id, album_image_url, str(e))
 
