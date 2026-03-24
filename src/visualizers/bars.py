@@ -24,7 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import cairo
 import numpy as np
 from .shaders import COMMON_FRAGMENT_SHADER, BARS_VERTEX_SHADER, get_shaders_for_config
-from .common import Set_uniforms, initialize_gpu, on_draw_common
+from .common import set_uniforms, initialize_gpu, on_draw_common
 
 try:
     import moderngl
@@ -106,8 +106,7 @@ class BarsVisualizer:
 
     
 
-    #note: I have not tested this yet so it might just break
-    #I also might never test it because I don't feel like it
+    # TODO: CPU fallback path is untested. GPU rendering is the primary path.
     def _initialize_cpu_fallback(self, widget):
         """Initialize CPU fallback rendering."""
         self.widget_width = widget.get_allocated_width()
@@ -192,7 +191,7 @@ class BarsVisualizer:
         if self.sample is None:
             return self.texture
 
-        Set_uniforms(self)
+        set_uniforms(self)
 
         if self.vao:
             if self.fill:
@@ -254,8 +253,8 @@ class BarsVisualizer:
                 
                 cr.set_source(gradient_pattern)
 
-            # this is bad and awful and I hate it
-            # might rewrite this later but we have cool gpu shaders now so I might not
+            # CPU bar drawing: mirrors bars from the centre outward.
+            # This path is only reached when GPU rendering is unavailable.
             for i, value in enumerate(self.sample):
                 if i < self.number_of_bars:
                     i = (self.number_of_bars - i)

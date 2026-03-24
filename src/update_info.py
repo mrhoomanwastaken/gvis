@@ -38,9 +38,8 @@ def update_info(self , scrobble_enabled , network):
     song_name = metadata.get('xesam:title')
     self.song_name.set_label(song_name)
 
-    # NOTE: dont touch this code it is cursed and haunted
-    # this took the longest time to debug because of the mess of if else statements
-    # see next comment block for more info
+    # Track whether the song has changed since the last update.
+    # AttributeError is expected on the very first call before self.old_song is set.
     try:
         if self.old_song != song_name:
             self.new_song = True
@@ -67,16 +66,14 @@ def update_info(self , scrobble_enabled , network):
     try:
         position_variant = self.source.get_cached_property("Position")
         current_position = position_variant.unpack()
-    except:
+    except Exception:
         pass
 
-    #this code haunts my nightmares
-    #here are all the known issues:
-    #1. I have not seen a single player that returns a position so its always going to assume the song just started
-    #2. the update_progress function will overestimate the position if the song is longer than 100000 seconds
-    #3. kde is somehow even worse than this is and just gives the wrong song length (I have no idea where it gets its numbers from it seems like its just the amount of time that songs have been playing plus 1 minute)
-    #4. sometimes it will spam 'cant find accurate position in song assuming song just started' and I don't know why
-    #6. rate does not work with any apps i have tested, but that does not matter because who listens to music at 2x speed anyway
+    # Known MPRIS position/progress limitations:
+    # 1. Many players do not expose Position reliably, so the bar defaults to 0 on a new song.
+    # 2. update_progress() will drift for songs longer than 100 000 seconds (not a real concern).
+    # 3. Some desktop environments (e.g. KDE) report incorrect song lengths.
+    # 4. The "Rate" property is ignored by most tested players, so playback speed is assumed 1.0.
     try:
         if current_position / metadata.get('mpris:length') > 1:
             self.progress_bar.set_fraction(current_position / metadata.get('mpris:length'))
@@ -90,14 +87,16 @@ def update_info(self , scrobble_enabled , network):
     self.just_updated = True
 
     try:
-        Rate = self.source.get_cached_property("rate").unpack
-    except:
-        Rate = 1.0
+        # MPRIS "Rate" is the playback speed multiplier (1.0 = normal speed).
+        rate = self.source.get_cached_property("Rate").unpack()
+    except Exception:
+        rate = 1.0
 
     try:
-        self.progress_rate = ((100000 / metadata.get('mpris:length')) * Rate) #for some reason mpris gives the length in microseconds I have no idea why we need that level of precision
+        # mpris:length is in microseconds; divide by 1 000 000 to convert to seconds.
+        self.progress_rate = (100000 / metadata.get('mpris:length')) * rate
     except TypeError:
-        print('cant find song length. progress bar will not work') # if you see this im sorry for your loss. im not helping you.
+        print('Cannot find song length; progress bar will not update.')
         self.progress_rate = 0
 
     #sometimes it will load a really low res image so it looks pixelated

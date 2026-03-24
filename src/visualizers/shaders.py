@@ -3,8 +3,6 @@ GPU shader definitions for gvis visualizers.
 Contains shader loading utilities and functions to access shader files.
 """
 
-# NOTE: this is more ai slop but if it ain't broke don't fix it
-
 import os
 from pathlib import Path
 
@@ -54,7 +52,6 @@ def get_shader(shader_name: str) -> str:
         _shader_cache[shader_name] = load_shader(shader_name)
     return _shader_cache[shader_name]
 
-# NOTE: there has to be a better way to do this but I cant be bothered
 
 def get_common_fragment_shader() -> str:
     """Get the common fragment shader source."""
@@ -82,8 +79,7 @@ def load_custom_shader(file_path: str) -> str:
         FileNotFoundError: If the shader file doesn't exist
         IOError: If there's an error reading the file
     """
-    # Add .glsl extension if not present
-    # NOTE: why did copilot think that this was necessary?
+    # Add .glsl extension if not already present.
     if not file_path.endswith('.glsl'):
         file_path = f"{file_path}.glsl"
     

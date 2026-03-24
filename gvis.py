@@ -20,12 +20,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import threading
 import gi
-import configparser
 import sys
 gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
 gi.require_version('Gio', '2.0')
-#why does gtk make me do this?
 from gi.repository import Gtk, Gdk , GLib , GdkPixbuf
 
 
@@ -50,8 +48,6 @@ else:
 # Initialize cavacore
 cava_init.initialize_cava(base_path)
 cava_lib = cava_init.cava_lib
-
-config = configparser.ConfigParser()
 
 
 
@@ -273,7 +269,7 @@ class MyWindow(Gtk.Window):
             GLib.timeout_add(100, self.update_progress)
     
     def get_screen_size(self , display):
-        #from user3840170 on stackoverflow
+        # Based on https://stackoverflow.com/a/65832693 by user3840170 (CC BY-SA 4.0)
         mon_geoms = [
             display.get_monitor(i).get_geometry()
             for i in range(display.get_n_monitors())
@@ -288,15 +284,14 @@ class MyWindow(Gtk.Window):
         self.width = x1 - x0
 
     def on_window_resize(self, widget, allocation):
-        if not gvis_config['dynamic_scaling']: #quick hack to disable dynamic resizing (might not work)
+        if not gvis_config['dynamic_scaling']:
             return
 
-        #TODO: add an option to disable dynamic resizing if issues persist 
-        # see line 160ish
-        try: # set the new old values to the old new values (cursed)
-            self.old_width = self.new_width 
+        # Keep track of previous dimensions to avoid redundant rescaling.
+        try:
+            self.old_width = self.new_width
             self.old_height = self.new_height
-        except AttributeError: #initialize on first run
+        except AttributeError:  # First call; previous dimensions not yet set.
             self.old_width = 0 
             self.old_height = 0
 
@@ -343,14 +338,15 @@ class MyWindow(Gtk.Window):
                 self.artist_name.show()
 
     def on_properties_changed(self, interface_name, changed_properties, invalidated_properties):
-        # this sometimes gets called even when nothing has changed
-        # seems to come from downstream in mpris
+        # g-properties-changed can fire even when nothing relevant has changed;
+        # this appears to be normal MPRIS behaviour upstream.
         print(changed_properties)
         self.update_info()
 
     def update_info(self):
-        # NOTE: self.update_info is different from update_info imported from src.update_info
-        # should probably rename one of them to avoid confusion
+        # NOTE: self.update_info (this method) delegates to the module-level
+        # update_info() imported from src.update_info. The method exists so
+        # that callbacks can call self.update_info() without needing extra args.
         global scrobble_enabled, network
         update_info(self , scrobble_enabled, network)
 

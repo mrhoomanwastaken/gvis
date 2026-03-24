@@ -1,5 +1,4 @@
 import subprocess
-import selectors
 import numpy as np
 import ctypes
 from gi.repository import GLib, Gio

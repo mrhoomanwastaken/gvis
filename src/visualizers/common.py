@@ -5,7 +5,7 @@ import time
 import numpy as np
 import cairo
 
-def Set_uniforms(self):
+def set_uniforms(self):
     """
     Set shader uniforms for the visualizer.
     Inputs:

@@ -20,7 +20,7 @@ import sys
 import select
 from gi.repository import Gio
 
-#NOTE: I dont like dbus_proxy but the good versions are deprecated
+# GDBusProxy is used here because the higher-level Gio MPRIS bindings are deprecated.
 
 def get_mpris_service():
     bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -44,43 +44,41 @@ def get_mpris_service():
     )
     # Extract the names from the result
     available_services = available_services[0]  # The result is a tuple, we want the first element
-    # List available services
+    # Filter to MPRIS-compliant services only
     mpris_services = [s for s in available_services if s.startswith("org.mpris.MediaPlayer2.")]
     if 'org.mpris.MediaPlayer2.plasma-browser-integration' in mpris_services:
         mpris_services = ['org.mpris.MediaPlayer2.plasma-browser-integration']
 
     source = None
 
-    Failed_sources = []
+    failed_sources = []
     working_sources = []
-    for i in mpris_services:
-        try:     
+    for service_name in mpris_services:
+        try:
             # Create a proxy for each MPRIS service
             mpris_proxy = Gio.DBusProxy.new_sync(
                 bus,
                 Gio.DBusProxyFlags.NONE,
                 None,
-                i,  # Use the MPRIS service name
+                service_name,
                 "/org/mpris/MediaPlayer2",
-                "org.mpris.MediaPlayer2.Player",  # Correct interface for MPRIS
+                "org.mpris.MediaPlayer2.Player",
                 None
             )
             working_sources.append(mpris_proxy)
-        except:
-            Failed_sources.append(i)
-    
+        except Exception:
+            failed_sources.append(service_name)
+
     print(mpris_services)
-    # this will list the pygobject proxies that are working
-    # this is an issue because the names are not human readable (looks like base64)
-    # and because the user has to choose between them if there are multiple working sources thats bad
-    # but the first one is usually the right one so its not a huge issue
+    # Proxy objects printed here are not human-readable; the first working source is
+    # usually the correct one when there is only one active player.
     print(working_sources)
-    
+
     if len(working_sources) == 1:
         source = working_sources[0]
     elif len(working_sources) > 1:
         if sys.stdin.isatty():
-            print("please choose a mpris service 0 is the first option and 1 is the second and so on")
+            print("Multiple MPRIS sources found. Enter the number of the source to use (0 = first):")
             print([s.Identity for s in working_sources])
 
             i, o, e = select.select( [sys.stdin], [], [], 5 )
@@ -88,9 +86,9 @@ def get_mpris_service():
             if (i):
                 source = working_sources[int(sys.stdin.readline().strip())]
             else:
-                print('input timed out choosing first option')
+                print('Input timed out; choosing first option.')
                 source = working_sources[0]
     elif len(working_sources) == 0:
-        raise ValueError("there needs to be at least one working mpris source")
+        raise ValueError("No working MPRIS source found. Ensure a media player is running.")
 
     return source

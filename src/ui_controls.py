@@ -16,12 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-# boring self explanatory functions for ui controls
-# if you want an explanation on how this works ask chatgpt or something (chatgpt pretty wrote this code ngl)
-
 from gi.repository import Gio
 
 def on_pause_button_clicked(source, button):
+    """Toggle play/pause via MPRIS."""
     if source:
         source.call_sync(
             "org.mpris.MediaPlayer2.Player.PlayPause",  # D-Bus method to call
@@ -36,11 +34,11 @@ def on_back_button_clicked(source, button, progress_bar):
     if source:
         source.call_sync(
             "org.mpris.MediaPlayer2.Player.Previous",  # D-Bus method to call
-            None,                                      # No arguments for PlayPause
+            None,                                      # No arguments
             Gio.DBusCallFlags.NONE,                    # No special flags
             -1,                                        # No timeout
             None                                       # No cancellable
-        )  # Call the Previous method from the MPRIS interface
+        )
         progress_bar.set_fraction(0)
 
 def on_skip_button_clicked(source, button):
@@ -48,8 +46,8 @@ def on_skip_button_clicked(source, button):
     if source:
         source.call_sync(
             "org.mpris.MediaPlayer2.Player.Next",  # D-Bus method to call
-            None,                                      # No arguments for PlayPause
+            None,                                      # No arguments
             Gio.DBusCallFlags.NONE,                    # No special flags
             -1,                                        # No timeout
             None                                       # No cancellable
-        )  # Call the Previous method from the MPRIS interface
+        )

@@ -18,9 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import configparser
 import os
-#this is run every time the program is run
-#it should only be running when there is no config file
-#TODO: fix that ^
+
 
 def create_config():
     config = configparser.ConfigParser()
@@ -29,7 +27,7 @@ def create_config():
     # If a change is made to this don't forget to update config_loader.py
     config['General'] = {'debug': True, 'log_level': 'info'}
     config['gvis'] = {'dynamic_scaling': False,
-                          'rate': 41000,
+                          'rate': 44100,
                           'channels': 2,
                           'autosens': 1,
                           'noise_reduction': 0.77,
@@ -53,7 +51,3 @@ def create_config():
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, 'w') as configfile:
         config.write(configfile)
-
-
-
-create_config()

@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import cairo
 import numpy as np
 from .shaders import COMMON_FRAGMENT_SHADER, LINES_VERTEX_SHADER, get_shaders_for_config
-from .common import Set_uniforms, initialize_gpu, on_draw_common
+from .common import set_uniforms, initialize_gpu, on_draw_common
 
 try:
     import moderngl
@@ -115,8 +115,7 @@ class LinesVisualizer:
 
     
 
-    #note: I have not tested this yet so it might just break
-    #I also might never test it because I don't feel like it
+    # TODO: CPU fallback path is untested. GPU rendering is the primary path.
     def _initialize_cpu_fallback(self, widget):
         """Initialize CPU fallback rendering."""
         self.widget_width = widget.get_allocated_width()
@@ -231,7 +230,7 @@ class LinesVisualizer:
         if self.sample is None:
             return self.texture
         
-        Set_uniforms(self)  # Set uniforms for shader
+        set_uniforms(self)  # Set uniforms for shader
          
         if self.vao:
             if self.fill:
