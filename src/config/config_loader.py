@@ -19,7 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 import configparser
-from src.config.configmaker import create_config
 
 def load_config():
     config = configparser.ConfigParser()
@@ -36,6 +35,7 @@ def load_config():
             config.read(os.path.expanduser('~/.config/gvis/config_example.ini'))
         else:
             print("Could not find the config example file. Creating one now.")
+            from src.config.configmaker import create_config
             create_config()
             config.read(os.path.expanduser('~/.config/gvis/config_example.ini'))
 
@@ -78,7 +78,7 @@ def load_config():
             gvis_config['background_col'] = (0, 0, 0, 0.5)
 
         # Parse gradient or fallback to color1
-        # I dont think we need this anymore becuase the shader code (should) handle it
+        # I dont think we need this anymore because the shader code (should) handle it
         # but im not sure so im leaving it here for now
         if gvis_config['gradient']:
             colors = gvis_config['color_gradient'].split(',')

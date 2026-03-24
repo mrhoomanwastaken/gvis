@@ -147,6 +147,7 @@ def update_info(self , scrobble_enabled , network):
     #3. kde is somehow even worse than this is and just gives the wrong song length (I have no idea where it gets its numbers from it seems like its just the amount of time that songs have been playing plus 1 minute)
     #4. sometimes it will spam 'cant find accurate position in song assuming song just started' and I don't know why
     #6. rate does not work with any apps i have tested, but that does not matter because who listens to music at 2x speed anyway
+    #also I know this looks like it wont work but it does so just dont touch it. :)
     try:
         if current_position / metadata.get('mpris:length') > 1:
             self.progress_bar.set_fraction(current_position / metadata.get('mpris:length'))
@@ -160,7 +161,7 @@ def update_info(self , scrobble_enabled , network):
     self.just_updated = True
 
     try:
-        Rate = self.source.get_cached_property("rate").unpack
+        Rate = self.source.get_cached_property("rate").unpack()
     except:
         Rate = 1.0
 

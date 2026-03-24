@@ -20,7 +20,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import threading
 import gi
-import configparser
 import sys
 gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
@@ -51,7 +50,6 @@ else:
 cava_init.initialize_cava(base_path)
 cava_lib = cava_init.cava_lib
 
-config = configparser.ConfigParser()
 
 
 
