@@ -10,7 +10,6 @@ NUITKA_BASE_ARGS := --onefile --output-dir=$(OUTPUT_DIR) \
 	--include-data-files="./src/visualizers/shaders/common_fragment.glsl=src/visualizers/shaders/common_fragment.glsl" \
 	--include-data-files="./src/visualizers/shaders/lines_vertex.glsl=src/visualizers/shaders/lines_vertex.glsl" \
 	--include-package="gi" \
-	--debug \
 	--show-progress
 PREFIX ?= /usr/local
 DESTDIR ?=
