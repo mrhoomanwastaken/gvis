@@ -33,7 +33,7 @@ all: install
 
 setup:
 	python3 -m venv venv
-	. venv/bin/activate && pip install -r requirements.txt && pip install nuitka
+	. venv/bin/activate && pip install -r requirements.txt && pip install "Nuitka[onefile]"
 
 # Auto-detect architecture and compile
 compile: setup
