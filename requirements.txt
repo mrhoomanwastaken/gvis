@@ -1,11 +1,11 @@
 dotenv==0.9.9
-numpy==2.4.3
+numpy==2.5.1
 pycairo==1.29.0
 pydbus==0.6.0
-PyGObject==3.56.1
-pylast==7.0.2
+PyGObject==3.56.3
+pylast==7.1.0
 python-dotenv==1.2.2
-setuptools==82.0.1
+setuptools==83.0.0
 # GPU acceleration libraries
 moderngl==5.12.0
 PyOpenGL==3.1.10
